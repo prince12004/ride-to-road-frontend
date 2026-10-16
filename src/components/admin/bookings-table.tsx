@@ -3,7 +3,7 @@ import { Phone } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { BookingStatusBadge, PaymentStatusBadge } from "@/components/admin/status-badge";
 import { formatINR, cn } from "@/lib/utils";
-import type { AdminBookingListItem } from "@/types";
+import { PAYMENT_METHOD_LABELS, type AdminBookingListItem } from "@/types";
 
 function fmtDate(date: string) {
   return new Date(date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
@@ -56,6 +56,14 @@ export function BookingsTable({ bookings, highlightMobile = false }: { bookings:
               </td>
               <td className="p-4">
                 <PaymentStatusBadge status={b.payment.status} />
+                {b.payment.method && (
+                  <p className="mt-1 whitespace-nowrap text-xs text-navy-400">
+                    {PAYMENT_METHOD_LABELS[b.payment.method] ?? b.payment.method}
+                  </p>
+                )}
+                {b.payment.method === "UPI_QR" && b.payment.status === "PENDING" && b.payment.proof?.uploadedAt && (
+                  <p className="mt-1 whitespace-nowrap text-xs font-semibold text-amber-700">Screenshot to review</p>
+                )}
               </td>
               <td className="p-4 text-navy-400">{fmtDate(b.createdAt)}</td>
               <td className="p-4 text-right">

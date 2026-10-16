@@ -6,6 +6,7 @@ import { ContactForm } from "@/components/contact/contact-form";
 import { ApiClientError, serverFetch } from "@/lib/api";
 import { getSiteContent } from "@/lib/content";
 import { whatsappLink } from "@/lib/whatsapp";
+import { siteConfig } from "@/config/site";
 
 interface Settings {
   companyName: string;
@@ -32,6 +33,10 @@ export const metadata: Metadata = {
 
 export default async function ContactUsPage() {
   const [settings, intro] = await Promise.all([getSettings(), getSiteContent("contact-us")]);
+  // Admin settings win; the site-wide contact details are the fallback so the
+  // page never shows an empty or stale contact card.
+  const phone = settings?.phone || siteConfig.contact.phoneDisplay;
+  const email = settings?.email || siteConfig.contact.email;
 
   return (
     <>
@@ -65,9 +70,9 @@ export default async function ContactUsPage() {
                 </div>
               </a>
 
-              {settings?.phone && (
+              {phone && (
                 <a
-                  href={`tel:${settings.phone}`}
+                  href={`tel:${phone.replace(/[^\d+]/g, "")}`}
                   className="flex items-center gap-3 rounded-2xl p-4 transition-colors hover:bg-navy-50"
                 >
                   <span className="grid size-10 shrink-0 place-items-center rounded-full bg-lime/20 text-brand-deep">
@@ -75,14 +80,14 @@ export default async function ContactUsPage() {
                   </span>
                   <div>
                     <p className="text-xs text-navy-400">Phone</p>
-                    <p className="font-semibold text-navy-900">{settings.phone}</p>
+                    <p className="font-semibold text-navy-900">{phone}</p>
                   </div>
                 </a>
               )}
 
-              {settings?.email && (
+              {email && (
                 <a
-                  href={`mailto:${settings.email}`}
+                  href={`mailto:${email}`}
                   className="flex items-center gap-3 rounded-2xl p-4 transition-colors hover:bg-navy-50"
                 >
                   <span className="grid size-10 shrink-0 place-items-center rounded-full bg-lime/20 text-brand-deep">
@@ -90,7 +95,7 @@ export default async function ContactUsPage() {
                   </span>
                   <div>
                     <p className="text-xs text-navy-400">Email</p>
-                    <p className="font-semibold text-navy-900">{settings.email}</p>
+                    <p className="break-all font-semibold text-navy-900">{email}</p>
                   </div>
                 </a>
               )}

@@ -37,13 +37,13 @@ export default function PendingPaymentsPage() {
 
   return (
     <div>
-      <PageHeader title="Pending Payments" description="Bookings where payment never completed — follow up by phone." />
+      <PageHeader title="Pending Payments" description="UPI QR bookings waiting for payment or for screenshot verification." />
 
       <div className="mb-4 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
         <AlertTriangle className="mt-0.5 size-5 shrink-0 text-amber-600" />
         <p className="text-sm text-amber-800">
-          These customers started a booking but never completed payment (abandoned checkout or a failed transaction). Call them to
-          confirm interest and either help complete payment or convert to an offline booking.
+          Rows marked “Screenshot to review” have a payment screenshot — open the booking to verify or reject it. The rest haven't
+          paid yet (or their screenshot was rejected): call them to help complete the payment or convert to an offline booking.
         </p>
       </div>
 

@@ -162,7 +162,7 @@ export default async function CarDetailPage({ params, searchParams }: CarDetailP
                   </Link>
                 </Button>
                 <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-xs text-navy-400">
-                  <ShieldCheck className="size-3.5" /> Secure payment via Razorpay · Instant confirmation
+                  <ShieldCheck className="size-3.5" /> Pay by cash at pickup or UPI QR
                 </p>
               </div>
             </Card>

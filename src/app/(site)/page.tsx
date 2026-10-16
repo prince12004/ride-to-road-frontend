@@ -1,3 +1,4 @@
+import { AttachCarBand } from "@/components/sections/attach-car-band";
 import { Cta } from "@/components/sections/cta";
 import { Faq } from "@/components/sections/faq";
 import { FeaturedCars } from "@/components/sections/featured-cars";
@@ -37,6 +38,7 @@ export default async function HomePage() {
       <Locations locations={locations} journeys={journeys} />
       {offer && <OfferBanner offer={offer} />}
       <WhyUs />
+      <AttachCarBand />
       {testimonials.length > 0 && <Testimonials testimonials={testimonials} />}
       {posts.length > 0 && <Stories posts={posts} />}
       {faqs.length > 0 && <Faq faqs={faqs} />}

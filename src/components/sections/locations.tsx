@@ -8,7 +8,7 @@ import type { Journey, Location } from "@/types";
 
 export function Locations({ locations, journeys }: { locations: Location[]; journeys: Journey[] }) {
   return (
-    <section id="locations" className="scroll-mt-20 py-20 lg:py-28">
+    <section id="locations" className="scroll-mt-20 py-14 sm:py-20 lg:py-28">
       <div className="container">
         <SectionHeading
           eyebrow="Locations"
@@ -16,7 +16,7 @@ export function Locations({ locations, journeys }: { locations: Location[]; jour
           description="Choose the pickup point closest to you, or ask about doorstep delivery."
         />
 
-        <div className="mt-12 grid auto-rows-[200px] grid-cols-2 gap-4 lg:auto-rows-[240px] lg:grid-cols-4">
+        <div className="mt-8 grid auto-rows-[150px] grid-cols-2 gap-3 sm:mt-12 sm:auto-rows-[200px] sm:gap-4 lg:auto-rows-[240px] lg:grid-cols-4">
           {locations.map((loc, i) => (
             <Reveal key={loc.id} delay={i * 0.06} className={cn(i === 0 && "col-span-2 row-span-2")}>
               <a
@@ -25,13 +25,17 @@ export function Locations({ locations, journeys }: { locations: Location[]; jour
                 rel="noopener noreferrer"
                 className="group relative block h-full overflow-hidden rounded-3xl"
               >
-                <Image
-                  src={loc.image}
-                  alt={loc.city}
-                  fill
-                  sizes={i === 0 ? "(min-width: 1024px) 50vw, 100vw" : "(min-width: 1024px) 25vw, 50vw"}
-                  className="object-cover transition-transform duration-700 group-hover:scale-105"
-                />
+                {loc.image ? (
+                  <Image
+                    src={loc.image}
+                    alt={loc.city}
+                    fill
+                    sizes={i === 0 ? "(min-width: 1024px) 50vw, 100vw" : "(min-width: 1024px) 25vw, 50vw"}
+                    className="object-cover transition-transform duration-700 group-hover:scale-105"
+                  />
+                ) : (
+                  <div aria-hidden className="absolute inset-0 bg-gradient-to-br from-navy-700 via-navy-900 to-navy-950 bg-lanes" />
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-navy-950/90 via-navy-950/20 to-transparent" />
                 <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-5">
                   <div>
@@ -58,13 +62,17 @@ export function Locations({ locations, journeys }: { locations: Location[]; jour
                 className="group w-[80%] shrink-0 snap-start overflow-hidden rounded-3xl border border-navy-100 bg-white sm:w-auto"
               >
                 <div className="relative aspect-[16/10] overflow-hidden">
-                  <Image
-                    src={j.image}
-                    alt={`${j.to}`}
-                    fill
-                    sizes="(min-width: 640px) 33vw, 80vw"
-                    className="object-cover transition-transform duration-700 group-hover:scale-105"
-                  />
+                  {j.image ? (
+                    <Image
+                      src={j.image}
+                      alt={`${j.to}`}
+                      fill
+                      sizes="(min-width: 640px) 33vw, 80vw"
+                      className="object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div aria-hidden className="absolute inset-0 bg-gradient-to-br from-navy-700 via-navy-900 to-navy-950 bg-lanes" />
+                  )}
                 </div>
                 <div className="p-5">
                   <p className="font-display text-lg font-bold text-navy-900">

@@ -24,6 +24,8 @@ export default async function BookingSuccessPage({ params }: { params: Promise<{
 
   const car = typeof booking.car === "object" ? (booking.car as { name: string }) : null;
   const isPaid = booking.payment.status === "PAID";
+  const isCod = booking.payment.method === "COD";
+  const isConfirmed = booking.status === "CONFIRMED" || isPaid;
 
   return (
     <section className="bg-navy-50 py-14 lg:py-20">
@@ -32,12 +34,14 @@ export default async function BookingSuccessPage({ params }: { params: Promise<{
           <CheckCircle2 className="size-9" />
         </div>
         <h1 className="mt-5 font-display text-3xl font-extrabold tracking-tight text-navy-950">
-          {isPaid ? "Booking Confirmed!" : "Booking Request Received"}
+          {isConfirmed ? "Booking Confirmed!" : "Booking Request Received"}
         </h1>
         <p className="mt-2 text-navy-500">
           {isPaid
-            ? "Your payment was successful and your booking is confirmed."
-            : "We've saved your booking request. Our team will reach out to confirm payment and details."}
+            ? "Your payment is received and your booking is confirmed."
+            : isCod
+              ? `Pay ${formatINR(booking.totalAmount)} in cash when you pick up the car.`
+              : "We've saved your booking. Complete the UPI payment and upload the screenshot to confirm it."}
         </p>
 
         <Card className="mt-8 p-6 text-left">
@@ -59,6 +63,10 @@ export default async function BookingSuccessPage({ params }: { params: Promise<{
               <dt className="text-navy-400">Customer</dt>
               <dd className="font-semibold text-navy-900">{booking.customerName}</dd>
             </div>
+            <div className="flex justify-between">
+              <dt className="text-navy-400">Payment</dt>
+              <dd className="font-semibold text-navy-900">{isCod ? "Cash on Delivery" : booking.payment.method === "UPI_QR" ? "UPI QR" : "—"}</dd>
+            </div>
             <div className="flex justify-between border-t border-navy-100 pt-2 text-base font-bold text-navy-900">
               <dt>Total</dt>
               <dd>{formatINR(booking.totalAmount)}</dd>
@@ -67,10 +75,10 @@ export default async function BookingSuccessPage({ params }: { params: Promise<{
         </Card>
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-          <Button asChild size="lg" className="flex-1">
+          <Button asChild size="lg" className="sm:flex-1">
             <Link href={`/booking/${booking.bookingId}`}>View Booking Details</Link>
           </Button>
-          <Button asChild variant="outline" size="lg" className="flex-1">
+          <Button asChild variant="outline" size="lg" className="sm:flex-1">
             <Link href="/">Back to Home</Link>
           </Button>
         </div>

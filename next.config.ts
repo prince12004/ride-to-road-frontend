@@ -3,6 +3,9 @@ import type { NextConfig } from "next";
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 const nextConfig: NextConfig = {
+  // Lets a second local dev server (e.g. for testing) use its own build
+  // folder — two `next dev` processes sharing `.next` corrupt each other.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   images: {
     formats: ["image/avif", "image/webp"],
     // Add CDN / CMS hosts here once images move to the admin-managed storage.

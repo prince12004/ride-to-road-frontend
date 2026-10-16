@@ -67,6 +67,10 @@ export const useAdminAuthStore = create<AdminAuthState>()(
     }),
     {
       name: "rtr-admin-auth",
+      // Read localStorage only after mount (see AuthHydration). Rehydrating
+      // during module load made the first client render differ from the
+      // server HTML — a hydration mismatch that re-rendered and flickered.
+      skipHydration: true,
       partialize: (state) => ({ admin: state.admin, accessToken: state.accessToken }),
       onRehydrateStorage: () => (state) => {
         if (state?.accessToken) setAccessToken(state.accessToken, "admin");

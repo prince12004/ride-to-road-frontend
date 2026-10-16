@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AnimatePresence, motion } from "framer-motion";
 import { CalendarClock, LayoutDashboard, LogIn, LogOut, Menu, Phone, UserRound, X } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { WhatsappIcon } from "@/components/brand/social-icons";
@@ -26,7 +25,7 @@ function initials(name?: string, mobile?: string) {
 }
 
 function UserMenu() {
-  const { user, clearSession } = useAuthStore();
+  const { user, clearSession, isHydrated } = useAuthStore();
   const [open, setOpen] = useState(false);
 
   const handleLogout = async () => {
@@ -38,6 +37,10 @@ function UserMenu() {
     clearSession();
     setOpen(false);
   };
+
+  // Until the saved session is read, hold the slot open instead of showing
+  // "Login" and then swapping it for the avatar a moment later.
+  if (!isHydrated) return <span aria-hidden className="hidden h-9 w-[5.5rem] sm:block" />;
 
   if (!user) {
     return (
@@ -129,11 +132,11 @@ export function Navbar() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-40 bg-white/95 backdrop-blur transition-shadow",
-        scrolled && "shadow-[0_1px_0_rgba(14,29,38,0.08),0_8px_24px_-12px_rgba(14,29,38,0.15)]",
+        "sticky top-0 z-40 border-b border-transparent bg-white/90 backdrop-blur-xl transition-[box-shadow,border-color] duration-300",
+        scrolled && "border-navy-100/80 shadow-[0_10px_30px_-18px_rgba(14,29,38,0.35)]",
       )}
     >
-      <div className="container flex h-16 items-center justify-between gap-6 sm:h-[72px]">
+      <div className="container flex h-16 items-center justify-between gap-4 sm:h-[72px]">
         <Logo />
 
         <nav aria-label="Main" className="hidden items-center gap-1 xl:flex">
@@ -162,27 +165,31 @@ export function Navbar() {
             </a>
           </Button>
           <UserMenu />
+          <a
+            href={`tel:${siteConfig.contact.phone}`}
+            aria-label={`Call ${siteConfig.contact.phoneDisplay}`}
+            className="grid size-10 place-items-center rounded-full bg-navy-50 text-navy-900 transition-colors hover:bg-navy-100 lg:hidden"
+          >
+            <Phone className="size-[18px]" />
+          </a>
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
             aria-expanded={open}
+            aria-controls="mobile-menu"
             aria-label={open ? "Close menu" : "Open menu"}
-            className="grid size-10 place-items-center rounded-full border border-navy-100 text-navy-900 xl:hidden"
+            className="grid size-10 place-items-center rounded-full bg-navy-900 text-white transition-colors hover:bg-navy-800 xl:hidden"
           >
             {open ? <X className="size-5" /> : <Menu className="size-5" />}
           </button>
         </div>
       </div>
 
-      <AnimatePresence>
         {open && (
-          <motion.nav
+          <nav
+            id="mobile-menu"
             aria-label="Mobile"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "calc(100dvh - 64px)" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            className="overflow-y-auto border-t border-navy-100 bg-white xl:hidden"
+            className="h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain border-t border-navy-100 bg-white duration-200 animate-in fade-in-0 slide-in-from-top-2 sm:h-[calc(100dvh-72px)] xl:hidden"
           >
             <ul className="container flex flex-col py-4">
               {mainNav.map((item) => (
@@ -238,9 +245,8 @@ export function Navbar() {
                 </button>
               )}
             </div>
-          </motion.nav>
+          </nav>
         )}
-      </AnimatePresence>
     </header>
   );
 }

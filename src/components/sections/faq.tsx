@@ -7,8 +7,8 @@ import type { Faq as FaqType } from "@/types";
 
 export function Faq({ faqs }: { faqs: FaqType[] }) {
   return (
-    <section id="faq" className="scroll-mt-20 border-t border-navy-100 py-20 lg:py-28">
-      <div className="container grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
+    <section id="faq" className="scroll-mt-20 border-t border-navy-100 py-14 sm:py-20 lg:py-28">
+      <div className="container grid gap-8 sm:gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
         <div className="lg:sticky lg:top-28 lg:self-start">
           <SectionHeading eyebrow="FAQ" title="Questions, answered." />
           <p className="mt-4 text-navy-500">Didn't find what you were looking for?</p>

@@ -7,10 +7,10 @@ export const siteConfig = {
     "Premium self-drive car rentals across Delhi NCR. Pick your ride, choose your time, and hit the road on your terms.",
   url: "https://ridetoroad.com",
   contact: {
-    whatsapp: "919310811124",
-    phoneDisplay: "+91 93108 11124",
-    phone: "+919310811124",
-    email: "hello@ridetoroad.com",
+    whatsapp: "917303939372",
+    phoneDisplay: "+91 73039 39372",
+    phone: "+917303939372",
+    email: "support.ridetoroad@gmail.com",
   },
   social: {
     instagram: "#",

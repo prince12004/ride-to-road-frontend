@@ -21,19 +21,20 @@ export interface BookingWidgetInitial {
 
 function Field({ icon, label, children, className }: { icon: ReactNode; label: string; children: ReactNode; className?: string }) {
   return (
-    <div className={cn("flex min-w-0 items-center gap-3 px-4 py-3 sm:px-5", className)}>
-      <span className="grid size-9 shrink-0 place-items-center rounded-full bg-navy-50 text-brand-deep [&_svg]:size-4">
+    <div className={cn("flex min-w-0 items-center gap-2.5 px-3 py-3 sm:gap-3 sm:px-5", className)}>
+      {/* Below 360px every pixel goes to the value text; the icon is decorative. */}
+      <span className="hidden size-8 shrink-0 place-items-center rounded-full bg-navy-50 text-brand-deep min-[360px]:grid sm:size-9 [&_svg]:size-4">
         {icon}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-navy-400">{label}</p>
+        <p className="truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-navy-400 sm:text-[11px]">{label}</p>
         {children}
       </div>
     </div>
   );
 }
 
-const triggerText = "text-sm font-semibold text-navy-900";
+const triggerText = "block w-full truncate text-left text-sm font-semibold text-navy-900";
 
 function parseDateStr(value: string | undefined, fallback: Date) {
   if (!value) return fallback;
@@ -108,7 +109,9 @@ export function BookingWidget({ cities, initial }: { cities: string[]; initial?:
     router.push(`/cars?${params.toString()}`);
   };
 
-  const divider = "border-navy-100 lg:border-l";
+  // Two equal columns from the smallest phone up (date | time on one row),
+  // collapsing into a single bar on desktop.
+  const cell = "border-navy-100";
 
   return (
     <form
@@ -116,8 +119,8 @@ export function BookingWidget({ cities, initial }: { cities: string[]; initial?:
       aria-label="Check car availability"
       className="rounded-3xl bg-white p-2 shadow-[0_30px_80px_-20px_rgba(8,19,26,0.45)] ring-1 ring-navy-900/5"
     >
-      <div className="grid divide-y divide-navy-100 sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-[1.1fr_1fr_0.85fr_1fr_0.85fr_auto] lg:items-center">
-        <Field icon={<MapPin />} label="Pickup city" className="sm:col-span-2 sm:border-b sm:border-navy-100 lg:col-span-1 lg:border-b-0">
+      <div className="grid grid-cols-2 lg:grid-cols-[1.1fr_1fr_0.85fr_1fr_0.85fr_auto] lg:items-center">
+        <Field icon={<MapPin />} label="Pickup city" className={cn(cell, "col-span-2 border-b lg:col-span-1 lg:border-b-0")}>
           <Select
             value={city}
             open={isOpen("city")}
@@ -141,7 +144,7 @@ export function BookingWidget({ cities, initial }: { cities: string[]; initial?:
           </Select>
         </Field>
 
-        <Field icon={<CalendarDays />} label="Pickup date" className={divider}>
+        <Field icon={<CalendarDays />} label="Pickup date" className={cn(cell, "border-b lg:border-b-0 lg:border-l")}>
           <CalendarPopoverField
             value={pickupDate}
             onChange={handlePickupDate}
@@ -151,7 +154,7 @@ export function BookingWidget({ cities, initial }: { cities: string[]; initial?:
             trigger={<span className={triggerText}>{format(pickupDate, "EEE, d MMM")}</span>}
           />
         </Field>
-        <Field icon={<Clock />} label="Time" className={cn(divider, "sm:border-l")}>
+        <Field icon={<Clock />} label="Pickup time" className={cn(cell, "border-b border-l lg:border-b-0")}>
           <TimePopoverField
             value={pickupTime}
             onChange={handlePickupTime}
@@ -161,7 +164,7 @@ export function BookingWidget({ cities, initial }: { cities: string[]; initial?:
           />
         </Field>
 
-        <Field icon={<CalendarDays />} label="Return date" className={cn(divider, "sm:border-t lg:border-t-0")}>
+        <Field icon={<CalendarDays />} label="Return date" className={cn(cell, "lg:border-l")}>
           <CalendarPopoverField
             value={returnDate}
             onChange={handleReturnDate}
@@ -171,7 +174,7 @@ export function BookingWidget({ cities, initial }: { cities: string[]; initial?:
             trigger={<span className={triggerText}>{format(returnDate, "EEE, d MMM")}</span>}
           />
         </Field>
-        <Field icon={<Clock />} label="Time" className={cn(divider, "sm:border-l sm:border-t lg:border-t-0")}>
+        <Field icon={<Clock />} label="Return time" className={cn(cell, "border-l")}>
           <TimePopoverField
             value={returnTime}
             onChange={handleReturnTime}
@@ -181,7 +184,7 @@ export function BookingWidget({ cities, initial }: { cities: string[]; initial?:
           />
         </Field>
 
-        <div className="p-2 sm:col-span-2 lg:col-span-1">
+        <div className="col-span-2 p-2 lg:col-span-1">
           <button
             type="submit"
             className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-lime px-7 font-display font-bold text-navy-900 transition-colors hover:bg-lime-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy-900"

@@ -22,7 +22,7 @@ const steps = [
 
 export function HowItWorks() {
   return (
-    <section id="how-it-works" className="scroll-mt-20 bg-navy-50 py-20 lg:py-28">
+    <section id="how-it-works" className="scroll-mt-20 bg-navy-50 py-14 sm:py-20 lg:py-28">
       <div className="container">
         <SectionHeading
           align="center"
@@ -30,22 +30,24 @@ export function HowItWorks() {
           title="Three steps to the open road."
           description="No paperwork piles, no waiting around. Booking a self-drive car takes minutes."
         />
-        <ol className="relative mt-14 grid gap-5 md:grid-cols-3">
+        <ol className="relative mt-8 grid gap-3 sm:mt-14 sm:gap-5 md:grid-cols-3">
           <span
             aria-hidden
             className="absolute left-[16%] right-[16%] top-10 hidden border-t-2 border-dashed border-navy-200 md:block"
           />
           {steps.map(({ icon: Icon, title, body }, i) => (
             <Reveal key={title} delay={i * 0.1}>
-              <li className="relative flex h-full flex-col items-center rounded-3xl bg-white p-8 text-center">
-                <span className="relative grid size-20 place-items-center rounded-full bg-navy-900 text-lime ring-8 ring-navy-50">
-                  <Icon className="size-8" />
-                  <span className="absolute -right-1 -top-1 grid size-7 place-items-center rounded-full bg-lime font-display text-sm font-extrabold text-navy-900">
+              <li className="relative flex h-full items-start gap-4 rounded-3xl bg-white p-5 shadow-[0_18px_40px_-34px_rgba(14,29,38,0.5)] md:flex-col md:items-center md:p-8 md:text-center">
+                <span className="relative grid size-14 shrink-0 place-items-center rounded-2xl bg-navy-900 text-lime md:size-20 md:rounded-full md:ring-8 md:ring-navy-50">
+                  <Icon className="size-6 md:size-8" />
+                  <span className="absolute -right-1.5 -top-1.5 grid size-6 place-items-center rounded-full bg-lime font-display text-xs font-extrabold text-navy-900 md:size-7 md:text-sm">
                     {i + 1}
                   </span>
                 </span>
-                <h3 className="mt-6 font-display text-xl font-bold text-navy-900">{title}</h3>
-                <p className="mt-3 leading-relaxed text-navy-500">{body}</p>
+                <div>
+                  <h3 className="font-display text-lg font-bold text-navy-900 md:mt-6 md:text-xl">{title}</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-navy-500 md:mt-3 md:text-base">{body}</p>
+                </div>
               </li>
             </Reveal>
           ))}

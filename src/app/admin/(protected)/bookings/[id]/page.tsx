@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { CalendarPlus, Loader2, MessageCircle, Save, XCircle } from "lucide-react";
+import { BadgeCheck, CalendarPlus, ExternalLink, Loader2, MessageCircle, Save, XCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,7 @@ import { BookingStatusBadge, PaymentStatusBadge } from "@/components/admin/statu
 import { apiFetch, ApiClientError } from "@/lib/api";
 import { toast } from "@/store/toast-store";
 import { formatINR } from "@/lib/utils";
-import type { AdminBookingDetail, BookingHistoryEntry, BookingStatus } from "@/types";
+import { PAYMENT_METHOD_LABELS, type AdminBookingDetail, type BookingHistoryEntry, type BookingStatus } from "@/types";
 
 const EXTENDABLE: BookingStatus[] = ["CONFIRMED", "CAR_ASSIGNED", "ACTIVE"];
 const PAYMENT_METHODS = [
@@ -58,6 +58,10 @@ export default function BookingDetailPage() {
   const [extPaymentMethod, setExtPaymentMethod] = useState("OFFLINE_UPI");
   const [extNote, setExtNote] = useState("");
   const [extending, setExtending] = useState(false);
+
+  const [reviewingPayment, setReviewingPayment] = useState<"verify" | "reject" | null>(null);
+  const [showReject, setShowReject] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -152,6 +156,45 @@ export default function BookingDetailPage() {
       toast({ title: "Could not extend booking", description: err instanceof ApiClientError ? err.message : "Try again.", variant: "error" });
     } finally {
       setExtending(false);
+    }
+  };
+
+  const handleVerifyPayment = async () => {
+    if (!booking) return;
+    const isCod = booking.payment.method === "COD";
+    if (!confirm(isCod ? `Mark ${formatINR(booking.totalAmount)} cash as received?` : "Confirm this UPI payment is received in the account?")) return;
+    setReviewingPayment("verify");
+    try {
+      await apiFetch(`/admin/bookings/${booking._id}/payment/verify`, { method: "POST", body: JSON.stringify({}) });
+      toast({ title: isCod ? "Cash payment recorded" : "Payment verified", variant: "success" });
+      load();
+    } catch (err) {
+      toast({ title: "Could not verify payment", description: err instanceof ApiClientError ? err.message : "Try again.", variant: "error" });
+    } finally {
+      setReviewingPayment(null);
+    }
+  };
+
+  const handleRejectPayment = async () => {
+    if (!booking) return;
+    if (rejectReason.trim().length < 3) {
+      toast({ title: "Add a reason for the customer", variant: "error" });
+      return;
+    }
+    setReviewingPayment("reject");
+    try {
+      await apiFetch(`/admin/bookings/${booking._id}/payment/reject`, {
+        method: "POST",
+        body: JSON.stringify({ reason: rejectReason.trim() }),
+      });
+      toast({ title: "Payment rejected", description: "The customer can upload a new screenshot.", variant: "success" });
+      setShowReject(false);
+      setRejectReason("");
+      load();
+    } catch (err) {
+      toast({ title: "Could not reject payment", description: err instanceof ApiClientError ? err.message : "Try again.", variant: "error" });
+    } finally {
+      setReviewingPayment(null);
     }
   };
 
@@ -304,7 +347,7 @@ export default function BookingDetailPage() {
               </div>
               <div>
                 <dt className="text-navy-400">Method</dt>
-                <dd className="font-semibold text-navy-900">{booking.payment.method ?? "—"}</dd>
+                <dd className="font-semibold text-navy-900">{booking.payment.method ? PAYMENT_METHOD_LABELS[booking.payment.method] ?? booking.payment.method : "—"}</dd>
               </div>
               {booking.payment.razorpayOrderId && (
                 <div>
@@ -331,6 +374,72 @@ export default function BookingDetailPage() {
                 </div>
               )}
             </dl>
+
+            {booking.payment.method === "UPI_QR" && (
+              <div className="mt-5 border-t border-navy-100 pt-5">
+                <p className="text-sm font-semibold text-navy-900">Payment screenshot</p>
+                {booking.payment.proof?.url ? (
+                  <a
+                    href={booking.payment.proof.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group mt-3 block w-fit overflow-hidden rounded-2xl border border-navy-100"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={booking.payment.proof.url} alt="Customer's UPI payment screenshot" className="max-h-80 w-auto object-contain" />
+                    <span className="flex items-center justify-center gap-1.5 bg-navy-50 p-2 text-xs font-semibold text-navy-700 group-hover:text-navy-900">
+                      <ExternalLink className="size-3.5" /> Open full size · uploaded {fmtDateTime(booking.payment.proof.uploadedAt)}
+                    </span>
+                  </a>
+                ) : (
+                  <p className="mt-2 text-sm text-navy-400">The customer hasn't uploaded a screenshot yet.</p>
+                )}
+              </div>
+            )}
+
+            {(booking.payment.method === "UPI_QR" || booking.payment.method === "COD") &&
+              booking.payment.status !== "PAID" &&
+              booking.status !== "CANCELLED" && (
+                <div className="mt-5 space-y-3 border-t border-navy-100 pt-5">
+                  {showReject && (
+                    <Textarea
+                      placeholder="Reason shown to the customer, e.g. amount doesn't match"
+                      value={rejectReason}
+                      onChange={(e) => setRejectReason(e.target.value)}
+                      autoFocus
+                    />
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    {!showReject && (
+                      <Button
+                        type="button"
+                        onClick={handleVerifyPayment}
+                        disabled={reviewingPayment !== null || (booking.payment.method === "UPI_QR" && !booking.payment.proof?.url)}
+                      >
+                        {reviewingPayment === "verify" ? <Loader2 className="size-4 animate-spin" /> : <BadgeCheck className="size-4" />}
+                        {booking.payment.method === "COD" ? "Mark Cash Received" : "Verify Payment"}
+                      </Button>
+                    )}
+                    {booking.payment.method === "UPI_QR" && booking.payment.proof?.url && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="border-red-200 text-red-600 hover:border-red-600"
+                        onClick={showReject ? handleRejectPayment : () => setShowReject(true)}
+                        disabled={reviewingPayment !== null}
+                      >
+                        {reviewingPayment === "reject" ? <Loader2 className="size-4 animate-spin" /> : <XCircle className="size-4" />}
+                        {showReject ? "Confirm Rejection" : "Reject"}
+                      </Button>
+                    )}
+                    {showReject && (
+                      <Button type="button" variant="outline" onClick={() => setShowReject(false)}>
+                        Back
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
           </Card>
 
           <Card className="p-6">

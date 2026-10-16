@@ -61,6 +61,10 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: "rtr-user-auth",
+      // Read localStorage only after mount (see AuthHydration). Rehydrating
+      // during module load made the first client render differ from the
+      // server HTML — a hydration mismatch that re-rendered and flickered.
+      skipHydration: true,
       partialize: (state) => ({ user: state.user, accessToken: state.accessToken }),
       onRehydrateStorage: () => (state) => {
         if (state?.accessToken) setAccessToken(state.accessToken, "user");

@@ -42,7 +42,7 @@ const values = [
 
 const steps = [
   { title: "Choose your car", body: "Filter by city, dates and body type to find the ride that fits your trip." },
-  { title: "Book in minutes", body: "Reserve online with secure Razorpay checkout — no paperwork at the counter." },
+  { title: "Book in minutes", body: "Reserve online in a few taps, then pay in cash at pickup or by UPI." },
   { title: "Pick up & drive", body: "Collect the car from our location or get it delivered to your doorstep." },
 ];
 

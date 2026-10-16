@@ -6,10 +6,10 @@ import type { Offer } from "@/types";
 
 export function OfferBanner({ offer }: { offer: Offer }) {
   return (
-    <section id="offers" className="scroll-mt-20 pb-20 lg:pb-28">
+    <section id="offers" className="scroll-mt-20 pb-14 sm:pb-20 lg:pb-28">
       <div className="container">
         <div className="relative isolate grid overflow-hidden rounded-[2rem] bg-lime lg:grid-cols-2">
-          <div className="relative z-10 p-8 sm:p-12 lg:p-16">
+          <div className="relative z-10 p-6 sm:p-12 lg:p-16">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-navy-800">{offer.eyebrow}</p>
             <h2 className="mt-4 text-balance font-display text-4xl font-extrabold leading-[1] tracking-tight text-navy-950 sm:text-5xl">
               {offer.title}

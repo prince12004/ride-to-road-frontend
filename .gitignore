@@ -17,3 +17,6 @@ next-env.d.ts
 # misc
 .DS_Store
 *.log
+
+# extra local build folders (NEXT_DIST_DIR)
+.next-*

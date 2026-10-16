@@ -120,6 +120,16 @@ export type BookingStatus =
   | "CANCELLED";
 
 export type PaymentStatus = "PENDING" | "PAID" | "FAILED" | "REFUNDED" | "NOT_APPLICABLE";
+export type PaymentMethod = "RAZORPAY" | "COD" | "UPI_QR" | "OFFLINE_CASH" | "OFFLINE_UPI" | "OFFLINE_OTHER";
+
+export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  RAZORPAY: "Online (Razorpay)",
+  COD: "Cash on Delivery",
+  UPI_QR: "UPI QR",
+  OFFLINE_CASH: "Cash (offline)",
+  OFFLINE_UPI: "UPI (offline)",
+  OFFLINE_OTHER: "Other (offline)",
+};
 
 export interface Booking {
   _id: string;
@@ -146,12 +156,16 @@ export interface Booking {
   extensions?: BookingExtension[];
   payment: {
     status: PaymentStatus;
-    method?: string;
+    method?: PaymentMethod;
     razorpayOrderId?: string;
     razorpayPaymentId?: string;
     amount?: number;
     paidAt?: string;
     failureReason?: string;
+    /** UPI QR screenshot. `url` is only sent to the owner and admins. */
+    proof?: { url?: string; uploadedAt: string };
+    reviewNote?: string;
+    reviewedAt?: string;
   };
   status: BookingStatus;
   source: "ONLINE" | "ADMIN_OFFLINE";
@@ -494,6 +508,21 @@ export interface AdminJourney {
   highlight: string;
   image: ImageRef;
   isActive: boolean;
+}
+
+export type CarLeadStatus = "NEW" | "CONTACTED" | "ONBOARDED" | "REJECTED";
+
+export interface CarLead {
+  _id: string;
+  name: string;
+  mobile: string;
+  carMakeModel: string;
+  registrationNumber: string;
+  manufacturingYear: number;
+  city: string;
+  details?: string;
+  status: CarLeadStatus;
+  createdAt: string;
 }
 
 export interface ContactEnquiry {

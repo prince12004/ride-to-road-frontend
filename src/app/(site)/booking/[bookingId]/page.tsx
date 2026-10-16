@@ -6,9 +6,10 @@ import { serverFetch, ApiClientError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { BookingStatusTimeline } from "@/components/booking/booking-status-timeline";
+import { PaymentPanel } from "@/components/booking/payment-panel";
 import { formatINR } from "@/lib/utils";
 import { whatsappLink } from "@/lib/whatsapp";
-import type { Booking, BookingStatusHistoryEntry, Location } from "@/types";
+import { PAYMENT_METHOD_LABELS, type Booking, type BookingStatusHistoryEntry, type Location } from "@/types";
 
 interface BookingCarSummary {
   name: string;
@@ -56,7 +57,19 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
           </Button>
         </div>
 
-        <div className="mt-8 grid items-start gap-6 lg:grid-cols-[1.4fr_1fr]">
+        <div className="mt-8">
+          <PaymentPanel
+            bookingId={booking.bookingId}
+            method={booking.payment.method}
+            paymentStatus={booking.payment.status}
+            bookingStatus={booking.status}
+            amount={booking.totalAmount}
+            proofUploadedAt={booking.payment.proof?.uploadedAt}
+            failureReason={booking.payment.failureReason}
+          />
+        </div>
+
+        <div className="mt-6 grid items-start gap-6 lg:grid-cols-[1.4fr_1fr]">
           <Card className="overflow-hidden p-0">
             {car?.mainImage?.url && (
               <div className="relative aspect-[21/9] overflow-hidden bg-navy-100">
@@ -155,7 +168,9 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
                 <span>{formatINR(booking.totalAmount)}</span>
               </div>
               <p className="mt-2 text-xs text-navy-400">
-                Payment status: <span className="font-semibold text-navy-700">{booking.payment.status}</span>
+                Payment: <span className="font-semibold text-navy-700">
+                  {booking.payment.method ? PAYMENT_METHOD_LABELS[booking.payment.method] : "—"} · {booking.payment.status === "PAID" ? "Paid" : booking.payment.status === "FAILED" ? "Not verified" : "Pending"}
+                </span>
               </p>
             </div>
             </div>

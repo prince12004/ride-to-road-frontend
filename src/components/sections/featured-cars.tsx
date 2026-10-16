@@ -8,7 +8,7 @@ import type { Car } from "@/types";
 
 export function FeaturedCars({ cars }: { cars: Car[] }) {
   return (
-    <section id="cars" className="scroll-mt-20 py-20 lg:py-28">
+    <section id="cars" className="scroll-mt-20 py-14 sm:py-20 lg:py-28">
       <div className="container">
         <SectionHeading
           eyebrow="The fleet"
@@ -23,9 +23,10 @@ export function FeaturedCars({ cars }: { cars: Car[] }) {
           }
         />
         {cars.length > 0 ? (
-          <div className="mt-12 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+          // Phones: a swipeable rail instead of a 4,000px stack. sm+: grid.
+          <div className="snap-rail mt-8 pb-2 sm:mx-0 sm:mt-12 sm:grid sm:grid-cols-2 sm:gap-5 sm:overflow-visible sm:px-0 sm:pb-0 xl:grid-cols-4">
             {cars.map((car, i) => (
-              <Reveal key={car.id} delay={i * 0.08} className="h-full">
+              <Reveal key={car.id} delay={i * 0.08} className="h-full w-[82%] max-w-[330px] sm:w-auto sm:max-w-none">
                 <CarCard car={car} />
               </Reveal>
             ))}

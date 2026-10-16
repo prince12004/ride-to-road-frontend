@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, FileText } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -65,7 +65,14 @@ export function VerificationPanel({ customer, onReviewed }: { customer: AdminCus
               className="block overflow-hidden rounded-2xl border border-navy-100"
             >
               <div className="relative h-40 w-full bg-navy-50">
-                <Image src={doc.url} alt={doc.type} fill className="object-cover" unoptimized />
+                {isPdfUrl(doc.url) ? (
+                  <span className="flex h-full flex-col items-center justify-center gap-2 text-navy-500">
+                    <FileText className="size-8" />
+                    <span className="text-xs font-semibold">PDF · open to view</span>
+                  </span>
+                ) : (
+                  <Image src={doc.url} alt={doc.type} fill className="object-cover" unoptimized />
+                )}
               </div>
               <p className="p-2 text-center text-xs font-semibold text-navy-700">{doc.type}</p>
             </a>
@@ -103,4 +110,8 @@ export function VerificationPanel({ customer, onReviewed }: { customer: AdminCus
       )}
     </Card>
   );
+}
+
+function isPdfUrl(url: string) {
+  return /\.pdf(\?|$)/i.test(url) || url.includes("/raw/");
 }

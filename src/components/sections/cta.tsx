@@ -7,7 +7,7 @@ import { whatsappLink } from "@/lib/whatsapp";
 
 export function Cta() {
   return (
-    <section className="relative isolate overflow-hidden py-24 lg:py-32">
+    <section className="relative isolate overflow-hidden py-16 sm:py-24 lg:py-32">
       <Image src="/images/cta-road.jpg" alt="" fill sizes="100vw" className="-z-10 object-cover" />
       <div className="absolute inset-0 -z-10 bg-navy-950/75" />
       <div className="container text-center">

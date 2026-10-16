@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { ChangeEvent } from "react";
-import { CreditCard, FileCheck2, IdCard, Loader2, ShieldCheck, UploadCloud } from "lucide-react";
+import { CreditCard, FileCheck2, FileText, IdCard, Loader2, ShieldCheck, UploadCloud } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,14 +11,18 @@ import { toast } from "@/store/toast-store";
 import { cn } from "@/lib/utils";
 import type { KycDocument, UserProfile, VerificationStatus } from "@/types";
 
+// `type` values must match VERIFICATION_DOCUMENT_TYPES in the backend.
 const DOC_SLOTS = [
-  { type: "Aadhaar Card", label: "Aadhaar", icon: IdCard, hint: "Front & back, or e-Aadhaar PDF" },
-  { type: "PAN Card", label: "PAN Card", icon: CreditCard, hint: "Clear photo of your PAN" },
-  { type: "Driving Licence", label: "Driving Licence", icon: ShieldCheck, hint: "Valid, 1+ year old" },
+  { type: "Aadhaar Card", label: "Aadhaar Card", icon: IdCard, hint: "Photo of front & back, or e-Aadhaar PDF", required: true },
+  { type: "Driving Licence", label: "Driving Licence", icon: ShieldCheck, hint: "Valid, 1+ year old", required: true },
+  { type: "PAN Card", label: "PAN Card", icon: CreditCard, hint: "Clear photo of your PAN", required: true },
+  { type: "Other Documents", label: "Other Documents", icon: FileText, hint: "Optional — e.g. address proof", required: false },
 ] as const;
 
+const REQUIRED_SLOTS = DOC_SLOTS.filter((s) => s.required);
+
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
-const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 
 const STATUS_META: Record<VerificationStatus, { label: string; variant: NonNullable<BadgeProps["variant"]> }> = {
   NOT_SUBMITTED: { label: "Not Submitted", variant: "outline" },
@@ -64,7 +68,7 @@ export default function VerificationPage() {
     return "NOT_SUBMITTED";
   };
 
-  const verifiedCount = DOC_SLOTS.filter((s) => slotStatus(s.type) === "VERIFIED").length;
+  const verifiedCount = REQUIRED_SLOTS.filter((s) => slotStatus(s.type) === "VERIFIED").length;
   const submittedCount = DOC_SLOTS.filter((s) => slotStatus(s.type) !== "NOT_SUBMITTED").length;
 
   const handleFileChange = async (type: string, e: ChangeEvent<HTMLInputElement>) => {
@@ -72,7 +76,7 @@ export default function VerificationPage() {
     e.target.value = "";
     if (!selected) return;
     if (!ACCEPTED_TYPES.includes(selected.type)) {
-      toast({ title: "Unsupported file type", description: "Please upload a JPG, PNG or WEBP image.", variant: "error" });
+      toast({ title: "Unsupported file type", description: "Please upload a JPG, PNG, WEBP image or a PDF.", variant: "error" });
       return;
     }
     if (selected.size > MAX_FILE_BYTES) {
@@ -130,8 +134,8 @@ export default function VerificationPage() {
     return (
       <div className="max-w-3xl space-y-4">
         <div className="h-24 animate-pulse rounded-3xl bg-navy-100" />
-        <div className="grid gap-4 sm:grid-cols-3">
-          {[0, 1, 2].map((i) => (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {[0, 1, 2, 3].map((i) => (
             <div key={i} className="h-48 animate-pulse rounded-3xl bg-navy-100" />
           ))}
         </div>
@@ -154,16 +158,16 @@ export default function VerificationPage() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-lime">Verification progress</p>
-              <p className="mt-1 font-display text-xl font-bold text-white">{verifiedCount} of {DOC_SLOTS.length} documents verified</p>
+              <p className="mt-1 font-display text-xl font-bold text-white">{verifiedCount} of {REQUIRED_SLOTS.length} documents verified</p>
             </div>
             <div className="grid size-14 shrink-0 place-items-center rounded-full bg-white/10 font-display text-lg font-extrabold text-white">
-              {Math.round((verifiedCount / DOC_SLOTS.length) * 100)}%
+              {Math.round((verifiedCount / REQUIRED_SLOTS.length) * 100)}%
             </div>
           </div>
           <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
             <div
               className="h-full rounded-full bg-lime transition-all duration-500"
-              style={{ width: `${(verifiedCount / DOC_SLOTS.length) * 100}%` }}
+              style={{ width: `${(verifiedCount / REQUIRED_SLOTS.length) * 100}%` }}
             />
           </div>
         </div>
@@ -175,7 +179,7 @@ export default function VerificationPage() {
         )}
       </Card>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         {DOC_SLOTS.map(({ type, label, icon: Icon, hint }) => {
           const status = slotStatus(type);
           const meta = status === "ready" ? { label: "Ready to submit", variant: "lime" as const } : STATUS_META[status as VerificationStatus];
@@ -217,7 +221,7 @@ export default function VerificationPage() {
                     {status === "REJECTED" ? "Re-upload" : "Verify Now"}
                     <input
                       type="file"
-                      accept="image/jpeg,image/png,image/webp"
+                      accept="image/jpeg,image/png,image/webp,application/pdf"
                       className="hidden"
                       onChange={(e) => handleFileChange(type, e)}
                     />
@@ -250,6 +254,8 @@ export default function VerificationPage() {
       )}
 
       <p className="text-center text-xs text-navy-400">
+        JPG, PNG, WEBP or PDF · max 5MB per file. Your documents are stored privately and only seen by our verification team.
+        <br />
         {submittedCount === 0
           ? "Documents are reviewed by our team — usually within a few hours."
           : "Our team reviews submitted documents manually, usually within a few hours."}

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getCarBySlug, getLocations } from "@/lib/content";
 import { BookingForm } from "@/components/booking/booking-form";
 import { BookingProgress } from "@/components/booking/booking-progress";
+import { formatINR } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Complete Your Booking",
@@ -25,19 +26,27 @@ export default async function BookCarPage({ params, searchParams }: BookCarPageP
     : undefined;
 
   return (
-    <section className="bg-navy-50 py-12 lg:py-12">
+    <section className="bg-navy-50 pb-10 pt-4 sm:pt-8 lg:py-12">
       <div className="container max-w-9xl">
-        <div className="mb-8 rounded-2xl border border-navy-100 bg-white p-4 sm:p-5">
+        <div className="mb-4 rounded-2xl border border-navy-100 bg-white px-3 py-2.5 sm:mb-8 sm:p-5">
           <BookingProgress current={1} />
         </div>
 
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-deep">Booking Details</p>
-        <h1 className="mt-3 text-balance font-display text-3xl font-extrabold tracking-tight text-navy-950 sm:text-4xl">
-          Book the {car.name}
-        </h1>
-        <p className="mt-2 text-navy-500">Fill in your details, review the summary and pay securely to confirm.</p>
+        <div className="flex items-end justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-brand-deep sm:text-xs">Complete your booking</p>
+            <h1 className="mt-1.5 truncate font-display text-2xl font-extrabold tracking-tight text-navy-950 sm:mt-3 sm:text-4xl">
+              {car.name}
+            </h1>
+          </div>
+          <p className="shrink-0 rounded-full bg-white px-3 py-1.5 text-sm font-bold text-navy-900 ring-1 ring-navy-100">
+            {formatINR(car.pricePerHour ?? car.pricePerDay)}
+            <span className="font-medium text-navy-400">/{car.pricePerHour ? "hr" : "day"}</span>
+          </p>
+        </div>
+        <p className="mt-2 hidden text-navy-500 sm:block">Pick your schedule, add your details and choose how you'd like to pay.</p>
 
-        <div className="mt-10">
+        <div className="mt-4 sm:mt-8">
           <Suspense
             fallback={
               <div className="grid gap-8 lg:grid-cols-[1.3fr_1fr]">
