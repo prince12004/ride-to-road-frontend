@@ -18,7 +18,7 @@ interface Settings {
 
 async function getSettings() {
   try {
-    const res = await serverFetch<Settings>("/settings", { revalidate: 60 });
+    const res = await serverFetch<Settings>("/settings", { revalidate: 60, tags: ["settings"] });
     return res.data;
   } catch (err) {
     if (err instanceof ApiClientError) return null;

@@ -1,18 +1,45 @@
 /**
- * Content access layer.
+ * Content access layer — every public section reads live data from the
+ * Ride to Road API (Express + MongoDB) through these functions.
  *
- * Every section reads data through these functions. They call the Ride to
- * Road API (Express + MongoDB) — components never needed to change when we
- * swapped the bodies from static demo data to real fetch() calls.
+ * Caching: each fetch is tagged, and the backend calls /revalidate with the
+ * matching tag whenever an admin creates, edits or deletes that content, so
+ * changes show up immediately. The `revalidate` seconds are only a fallback.
+ *
+ * Errors are NOT swallowed: a failed API call throws, so a statically cached
+ * page keeps serving its last good version (Next.js won't replace it with an
+ * error), and dynamic pages show the error boundary instead of a misleading
+ * "nothing here yet" state. An empty list means the database really is empty.
  */
 import { serverFetch, ApiClientError } from "@/lib/api";
 import type { Car, CarDetail, Location, Journey, Offer, Testimonial, BlogPost, Faq } from "@/types";
 
-async function safe<T>(promise: Promise<{ data: T }>, fallback: T): Promise<T> {
+/** Cache tags — keep in sync with backend/src/services/revalidate.service.ts. */
+export const TAGS = {
+  cars: "cars",
+  locations: "locations",
+  journeys: "journeys",
+  offers: "offers",
+  testimonials: "testimonials",
+  blogs: "blogs",
+  faqs: "faqs",
+  siteContent: "site-content",
+  settings: "settings",
+} as const;
+
+const FALLBACK_SECONDS = 60;
+
+async function data<T>(path: string, tags: string[], revalidate = FALLBACK_SECONDS): Promise<T> {
+  return (await serverFetch<T>(path, { tags, revalidate })).data;
+}
+
+/** For single records: a 404 means "not found", anything else is a real error. */
+async function dataOrNull<T>(path: string, tags: string[], revalidate = FALLBACK_SECONDS): Promise<T | null> {
   try {
-    return (await promise).data;
-  } catch {
-    return fallback;
+    return await data<T>(path, tags, revalidate);
+  } catch (err) {
+    if (err instanceof ApiClientError && err.status === 404) return null;
+    throw err;
   }
 }
 
@@ -31,67 +58,51 @@ export async function getCars(filters: CarSearchFilters = {}) {
   if (filters.pickupTime) params.set("pickupTime", filters.pickupTime);
   if (filters.dropDate) params.set("dropDate", filters.dropDate);
   if (filters.dropTime) params.set("dropTime", filters.dropTime);
-  return safe(serverFetch<Car[]>(`/cars?${params.toString()}`, { revalidate: filters.city ? 0 : 30 }), []);
+  // Date searches depend on live bookings, so they're never cached.
+  return data<Car[]>(`/cars?${params.toString()}`, [TAGS.cars], filters.city || filters.pickupDate ? 0 : FALLBACK_SECONDS);
 }
 
 export async function getFeaturedCars(limit = 4) {
-  return safe(serverFetch<Car[]>(`/cars?featured=true&limit=${limit}`, { revalidate: 30 }), []);
+  return data<Car[]>(`/cars?featured=true&limit=${limit}`, [TAGS.cars]);
 }
 
-export async function getHomeCars(limit = 8) {
-  return safe(serverFetch<Car[]>(`/cars?limit=${limit}`, { revalidate: 30 }), []);
+/** Homepage fleet: admin-featured cars first, then newest (sorted by the API). */
+export async function getHomeCars(limit = 12) {
+  return data<Car[]>(`/cars?limit=${limit}`, [TAGS.cars]);
 }
 
 export async function getCarBySlug(slug: string): Promise<CarDetail | null> {
-  try {
-    const res = await serverFetch<CarDetail>(`/cars/${slug}`, { revalidate: 15 });
-    return res.data;
-  } catch (err) {
-    if (err instanceof ApiClientError && err.status === 404) return null;
-    throw err;
-  }
+  return dataOrNull<CarDetail>(`/cars/${slug}`, [TAGS.cars, TAGS.locations]);
 }
 
 export async function getLocations() {
-  return safe(serverFetch<Location[]>("/locations", { revalidate: 120 }), []);
+  return data<Location[]>("/locations", [TAGS.locations]);
 }
 
 export async function getJourneys() {
-  return safe(serverFetch<Journey[]>("/journeys", { revalidate: 120 }), []);
+  return data<Journey[]>("/journeys", [TAGS.journeys]);
 }
 
 export async function getFeaturedOffer() {
-  return safe(serverFetch<Offer | null>("/offers/featured", { revalidate: 60 }), null);
+  return data<Offer | null>("/offers/featured", [TAGS.offers]);
 }
 
 export async function getTestimonials() {
-  return safe(serverFetch<Testimonial[]>("/testimonials", { revalidate: 120 }), []);
+  return data<Testimonial[]>("/testimonials", [TAGS.testimonials]);
 }
 
 export async function getBlogPosts(limit = 3) {
-  return safe(serverFetch<BlogPost[]>(`/blogs?limit=${limit}`, { revalidate: 60 }), []);
+  return data<BlogPost[]>(`/blogs?limit=${limit}`, [TAGS.blogs]);
 }
 
 export async function getBlogBySlug(slug: string) {
-  try {
-    const res = await serverFetch<Record<string, unknown>>(`/blogs/${slug}`, { revalidate: 60 });
-    return res.data;
-  } catch (err) {
-    if (err instanceof ApiClientError && err.status === 404) return null;
-    throw err;
-  }
+  return dataOrNull<Record<string, unknown>>(`/blogs/${slug}`, [TAGS.blogs]);
 }
 
 export async function getFaqs() {
-  return safe(serverFetch<Faq[]>("/faqs", { revalidate: 120 }), []);
+  return data<Faq[]>("/faqs", [TAGS.faqs]);
 }
 
 export async function getSiteContent(key: string) {
-  try {
-    const res = await serverFetch<{ title: string; content: string }>(`/site-content/${key}`, { revalidate: 60 });
-    return res.data;
-  } catch (err) {
-    if (err instanceof ApiClientError && err.status === 404) return null;
-    throw err;
-  }
+  return dataOrNull<{ title: string; content: string }>(`/site-content/${key}`, [TAGS.siteContent]);
 }

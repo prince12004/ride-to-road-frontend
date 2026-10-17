@@ -24,13 +24,15 @@ interface ApiEnvelope<T> {
  */
 export async function serverFetch<T>(
   path: string,
-  options: RequestInit & { revalidate?: number } = {}
+  options: RequestInit & { revalidate?: number; tags?: string[] } = {}
 ): Promise<ApiEnvelope<T>> {
-  const { revalidate, ...init } = options;
+  const { revalidate, tags, ...init } = options;
   const res = await fetch(`${API_BASE}/api${path}`, {
     ...init,
     headers: { "Content-Type": "application/json", ...init.headers },
-    next: revalidate !== undefined ? { revalidate } : { revalidate: 30 },
+    // `tags` let the backend purge this data the moment an admin changes it
+    // (see app/revalidate/route.ts); `revalidate` is only a safety net.
+    next: { revalidate: revalidate ?? 30, ...(tags ? { tags } : {}) },
   });
 
   const body = await res.json().catch(() => ({}));

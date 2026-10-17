@@ -21,7 +21,7 @@ import {
 
 export default async function HomePage() {
   const [cars, locations, journeys, offer, testimonials, posts, faqs] = await Promise.all([
-    getHomeCars(8),
+    getHomeCars(),
     getLocations(),
     getJourneys(),
     getFeaturedOffer(),
