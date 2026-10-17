@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { BookingStatusTimeline } from "@/components/booking/booking-status-timeline";
 import { PaymentPanel } from "@/components/booking/payment-panel";
+import { DeliveryAddress } from "@/components/booking/delivery-address";
 import { formatINR } from "@/lib/utils";
 import { whatsappLink } from "@/lib/whatsapp";
 import { PAYMENT_METHOD_LABELS, type Booking, type BookingStatusHistoryEntry, type Location } from "@/types";
@@ -132,6 +133,14 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
                   {booking.dropTime}
                 </dd>
               </div>
+              {booking.homeDelivery?.requested && booking.homeDelivery.address ? (
+                <DeliveryAddress bookingObjectId={booking._id} maskedAddress={booking.homeDelivery.address} />
+              ) : (
+                <div className="col-span-2">
+                  <dt className="text-navy-400">Pickup / Delivery</dt>
+                  <dd className="font-semibold text-navy-900">{booking.homeDelivery?.requested ? "Home delivery" : "Self pickup"}</dd>
+                </div>
+              )}
               {booking.specialRequest && (
                 <div className="col-span-2">
                   <dt className="text-navy-400">Special Request</dt>

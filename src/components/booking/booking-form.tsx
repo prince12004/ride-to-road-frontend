@@ -55,6 +55,17 @@ const schema = z.object({
   specialRequest: z.string().optional(),
   couponCode: z.string().optional(),
   termsAccepted: z.boolean().refine((v) => v, "Please accept the rental terms to continue"),
+  homeDelivery: z.boolean(),
+  deliveryAddress: z.string().max(500, "Keep the address under 500 characters").optional(),
+}).superRefine((v, ctx) => {
+  // Mirrors the API rule: delivery needs a complete address.
+  if (v.homeDelivery && (v.deliveryAddress ?? "").trim().length < 10) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["deliveryAddress"],
+      message: "Enter your complete delivery address (house no., street, area, city)",
+    });
+  }
 });
 
 // Shown before the customer confirms (from the business's rental rules).
@@ -151,11 +162,15 @@ export function BookingForm({
     watch,
     setValue,
     reset,
+    getValues,
+    clearErrors,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       termsAccepted: false,
+      homeDelivery: false,
+      deliveryAddress: "",
       customerName: user?.name || "",
       mobile: user?.mobile || "",
       email: user?.email || "",
@@ -169,6 +184,17 @@ export function BookingForm({
   });
 
   const values = watch();
+
+  const chooseDelivery = (delivery: boolean) => {
+    setHomeDelivery(delivery);
+    setValue("homeDelivery", delivery);
+    if (!delivery) {
+      clearErrors("deliveryAddress");
+    } else if (!getValues("deliveryAddress")?.trim() && getValues("address")?.trim()) {
+      // Start from the address the customer already typed above.
+      setValue("deliveryAddress", getValues("address"));
+    }
+  };
 
   // Self-drive rentals return to the same spot they were picked up from —
   // keep dropLocationId in lockstep with pickupLocationId instead of asking twice.
@@ -211,7 +237,10 @@ export function BookingForm({
         mobile: draft.values.mobile || current.mobile || user.mobile || "",
       }));
       if (draft.paymentMethod) setPaymentMethod(draft.paymentMethod);
-      if (typeof draft.homeDelivery === "boolean") setHomeDelivery(draft.homeDelivery);
+      if (typeof draft.homeDelivery === "boolean") {
+        setHomeDelivery(draft.homeDelivery);
+        setValue("homeDelivery", draft.homeDelivery);
+      }
       toast({ title: "Welcome back", description: "Your booking details are saved — review and confirm.", variant: "success" });
     } catch {
       // Ignore a corrupt draft.
@@ -343,6 +372,7 @@ export function BookingForm({
           carId: car._id,
           email: formValues.email || undefined,
           homeDelivery,
+          deliveryAddress: homeDelivery ? formValues.deliveryAddress?.trim() : undefined,
           paymentMethod,
         }),
       });
@@ -404,7 +434,7 @@ export function BookingForm({
                 type="button"
                 role="radio"
                 aria-checked={!homeDelivery}
-                onClick={() => setHomeDelivery(false)}
+                onClick={() => chooseDelivery(false)}
                 className={cn(
                   "flex flex-col items-start gap-1.5 rounded-2xl border-2 p-3 text-left transition-colors min-[400px]:flex-row min-[400px]:gap-2.5 sm:gap-3 sm:p-4",
                   !homeDelivery ? "border-brand-deep bg-navy-50" : "border-navy-100 hover:border-navy-200",
@@ -420,7 +450,7 @@ export function BookingForm({
                 type="button"
                 role="radio"
                 aria-checked={homeDelivery}
-                onClick={() => setHomeDelivery(true)}
+                onClick={() => chooseDelivery(true)}
                 className={cn(
                   "flex flex-col items-start gap-1.5 rounded-2xl border-2 p-3 text-left transition-colors min-[400px]:flex-row min-[400px]:gap-2.5 sm:gap-3 sm:p-4",
                   homeDelivery ? "border-brand-deep bg-navy-50" : "border-navy-100 hover:border-navy-200",
@@ -432,6 +462,28 @@ export function BookingForm({
                   <span className="block text-xs text-navy-500">+{formatINR(car.homeDelivery.price)} · to your doorstep</span>
                 </span>
               </button>
+            </div>
+          )}
+
+          {car.homeDelivery?.available && homeDelivery && (
+            <div className="mt-4">
+              <Label htmlFor="deliveryAddress">
+                Delivery Address <span className="text-red-600">*</span>
+              </Label>
+              <Textarea
+                id="deliveryAddress"
+                rows={3}
+                autoComplete="street-address"
+                placeholder="House / flat no., street, area, landmark, city, pincode"
+                className="mt-1.5"
+                aria-invalid={Boolean(errors.deliveryAddress)}
+                {...register("deliveryAddress")}
+              />
+              {errors.deliveryAddress ? (
+                <p className="mt-1 text-xs text-red-600">{errors.deliveryAddress.message}</p>
+              ) : (
+                <p className="mt-1 text-xs text-navy-400">We'll deliver and collect the car at this address.</p>
+              )}
             </div>
           )}
 

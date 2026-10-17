@@ -303,6 +303,21 @@ export default function BookingDetailPage() {
                   {new Date(booking.dropDate).toLocaleDateString("en-IN")} · {booking.dropTime}
                 </dd>
               </div>
+              <div className="col-span-2">
+                <dt className="text-navy-400">Pickup / Delivery</dt>
+                {booking.homeDelivery?.requested ? (
+                  <dd className="mt-1 rounded-2xl border border-lime/50 bg-lime/10 p-3">
+                    <span className="block text-xs font-bold uppercase tracking-wide text-brand-deep">
+                      Home delivery · {formatINR(booking.homeDelivery.fee)}
+                    </span>
+                    <span className="mt-1 block whitespace-pre-line font-semibold text-navy-900">
+                      {booking.homeDelivery.address || "No address on file — call the customer."}
+                    </span>
+                  </dd>
+                ) : (
+                  <dd className="font-semibold text-navy-900">Self pickup</dd>
+                )}
+              </div>
               {booking.specialRequest && (
                 <div className="col-span-2">
                   <dt className="text-navy-400">Special Request</dt>

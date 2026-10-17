@@ -154,6 +154,7 @@ export interface Booking {
   totalAmount: number;
   /** Refundable deposit, already included in totalAmount. */
   securityDeposit?: number;
+  homeDelivery?: { requested: boolean; fee: number; address?: string };
   extensionCharges?: number;
   extensions?: BookingExtension[];
   payment: {
