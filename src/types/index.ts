@@ -336,6 +336,7 @@ export interface AdminLocationDoc {
   address?: string;
   image?: ImageRef;
   isActive: boolean;
+  showAllCars?: boolean;
 }
 
 export interface AdminCarDoc {

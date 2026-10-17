@@ -21,9 +21,10 @@ interface FormState {
   address: string;
   image: ImageRef | null;
   isActive: boolean;
+  showAllCars: boolean;
 }
 
-const emptyForm: FormState = { city: "", region: "", address: "", image: null, isActive: true };
+const emptyForm: FormState = { city: "", region: "", address: "", image: null, isActive: true, showAllCars: false };
 
 export default function AdminLocationsPage() {
   const [locations, setLocations] = useState<AdminLocationDoc[]>([]);
@@ -57,7 +58,7 @@ export default function AdminLocationsPage() {
 
   const openEdit = (loc: AdminLocationDoc) => {
     setEditing(loc);
-    setForm({ city: loc.city, region: loc.region, address: loc.address ?? "", image: loc.image ?? null, isActive: loc.isActive });
+    setForm({ city: loc.city, region: loc.region, address: loc.address ?? "", image: loc.image ?? null, isActive: loc.isActive, showAllCars: Boolean(loc.showAllCars) });
     setOpen(true);
   };
 
@@ -69,7 +70,7 @@ export default function AdminLocationsPage() {
     }
     setSubmitting(true);
     try {
-      const payload = { city: form.city, region: form.region, address: form.address || undefined, image: form.image ?? undefined, isActive: form.isActive };
+      const payload = { city: form.city, region: form.region, address: form.address || undefined, image: form.image ?? undefined, isActive: form.isActive, showAllCars: form.showAllCars };
       if (editing) {
         await apiFetch(`/admin/locations/${editing._id}`, { method: "PUT", body: JSON.stringify(payload) });
         toast({ title: "Location updated", variant: "success" });
@@ -144,6 +145,11 @@ export default function AdminLocationsPage() {
                   <td className="p-4 text-navy-700">{loc.address ?? "—"}</td>
                   <td className="p-4">
                     <Badge variant={loc.isActive ? "success" : "outline"}>{loc.isActive ? "Active" : "Inactive"}</Badge>
+                    {loc.showAllCars && (
+                      <Badge variant="lime" className="ml-1.5">
+                        All cars
+                      </Badge>
+                    )}
                   </td>
                   <td className="p-4">
                     <div className="flex justify-end gap-1.5">
@@ -188,6 +194,21 @@ export default function AdminLocationsPage() {
               />
               <label htmlFor="isActive" className="text-sm font-semibold text-navy-700">
                 Active
+              </label>
+            </div>
+            <div className="flex items-start gap-2">
+              <input
+                type="checkbox"
+                id="showAllCars"
+                checked={form.showAllCars}
+                onChange={(e) => setForm((s) => ({ ...s, showAllCars: e.target.checked }))}
+                className="mt-0.5 size-4"
+              />
+              <label htmlFor="showAllCars" className="text-sm text-navy-700">
+                <span className="font-semibold">Show all cars in search</span>
+                <span className="block text-xs text-navy-400">
+                  Customers searching this city see the whole fleet (cars based here first), not only cars located here.
+                </span>
               </label>
             </div>
             <Button type="submit" className="w-full" disabled={submitting}>
