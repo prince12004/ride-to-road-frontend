@@ -157,6 +157,12 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
                   <span className="font-medium text-navy-900">{formatINR(booking.extensionCharges)}</span>
                 </div>
               )}
+              {!!booking.securityDeposit && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-navy-500">Security Deposit (refundable)</span>
+                  <span className="font-medium text-navy-900">{formatINR(booking.securityDeposit)}</span>
+                </div>
+              )}
               {!!booking.taxAmount && (
                 <div className="flex justify-between text-sm">
                   <span className="text-navy-500">Taxes</span>

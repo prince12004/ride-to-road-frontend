@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { BadgeCheck, CalendarPlus, ExternalLink, Loader2, MessageCircle, Save, XCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -254,6 +255,13 @@ export default function BookingDetailPage() {
               <div>
                 <dt className="text-navy-400">Customer</dt>
                 <dd className="font-semibold text-navy-900">{booking.customerName}</dd>
+                {booking.user?._id && (
+                  <dd className="mt-0.5">
+                    <Link href={`/admin/customers/${booking.user._id}`} className="text-xs font-semibold text-brand-deep hover:underline">
+                      View profile &amp; KYC documents →
+                    </Link>
+                  </dd>
+                )}
               </div>
               <div>
                 <dt className="text-navy-400">Mobile</dt>
@@ -319,6 +327,12 @@ export default function BookingDetailPage() {
                 <div className="flex justify-between">
                   <dt className="text-navy-500">Extension Charges</dt>
                   <dd className="font-medium text-navy-900">{formatINR(booking.extensionCharges)}</dd>
+                </div>
+              )}
+              {!!booking.securityDeposit && (
+                <div className="flex justify-between">
+                  <dt className="text-navy-500">Security Deposit (refundable)</dt>
+                  <dd className="font-medium text-navy-900">{formatINR(booking.securityDeposit)}</dd>
                 </div>
               )}
               <div className="flex justify-between">

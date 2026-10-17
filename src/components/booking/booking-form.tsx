@@ -9,6 +9,7 @@ import { addDays, format, parse } from "date-fns";
 import Link from "next/link";
 import {
   ArrowRight,
+  Check,
   BadgeCheck,
   CalendarClock,
   CalendarDays,
@@ -37,6 +38,7 @@ import { toast } from "@/store/toast-store";
 import { useAuthStore } from "@/store/auth-store";
 import { cn, formatINR, todayInIndia } from "@/lib/utils";
 import { labelForTime } from "@/lib/time-slots";
+import { BOOKING_KYC_SLOTS, KycDocumentGrid, slotState, useKycProfile } from "@/components/kyc/kyc-documents";
 import type { CarDetail, Location, Booking } from "@/types";
 
 const schema = z.object({
@@ -52,7 +54,18 @@ const schema = z.object({
   dropTime: z.string().min(1),
   specialRequest: z.string().optional(),
   couponCode: z.string().optional(),
+  termsAccepted: z.boolean().refine((v) => v, "Please accept the rental terms to continue"),
 });
+
+// Shown before the customer confirms (from the business's rental rules).
+const RENTAL_TERMS = [
+  "Minimum age: 21 years",
+  "Speed limit: 120 km/h",
+  "No smoking inside the vehicle",
+  "Driver must carry the original Driving Licence",
+  "Fuel to be refilled to the same level before return",
+  "No outstation travel without prior approval",
+];
 
 type FormValues = z.infer<typeof schema>;
 
@@ -119,7 +132,6 @@ export function BookingForm({
   const [inputFocused, setInputFocused] = useState(false);
   const [homeDelivery, setHomeDelivery] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentChoice>("COD");
-  const [verification, setVerification] = useState<{ status: string } | null>(null);
   const [coupon, setCoupon] = useState<{ code: string; discountAmount: number } | null>(null);
   const [couponChecking, setCouponChecking] = useState(false);
   const [couponError, setCouponError] = useState("");
@@ -143,6 +155,7 @@ export function BookingForm({
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
+      termsAccepted: false,
       customerName: user?.name || "",
       mobile: user?.mobile || "",
       email: user?.email || "",
@@ -205,12 +218,9 @@ export function BookingForm({
     }
   }, [isHydrated, user, car.slug, reset]);
 
-  useEffect(() => {
-    if (!user) return;
-    apiFetch<{ verification: { status: string } }>("/auth/me")
-      .then((res) => setVerification(res.data.verification))
-      .catch(() => {});
-  }, [user]);
+  const { profile: kycProfile, reload: reloadKyc } = useKycProfile(Boolean(user));
+  const kycUploaded = BOOKING_KYC_SLOTS.filter((s) => slotState(kycProfile, s) !== "NOT_SUBMITTED").length;
+  const kycVerified = BOOKING_KYC_SLOTS.every((s) => slotState(kycProfile, s) === "VERIFIED");
 
   type ScheduleField = "pickupDate" | "pickupTime" | "dropDate" | "dropTime";
   const [openField, setOpenField] = useState<ScheduleField | null>(null);
@@ -287,9 +297,12 @@ export function BookingForm({
       const baseAmount = car.pricePerHour ? Math.round(car.pricePerHour * hours) : days * car.pricePerDay;
       const delivery = homeDelivery ? deliveryFee : 0;
       const discount = coupon && values.couponCode?.trim().toUpperCase() === coupon.code ? coupon.discountAmount : 0;
-      return { hours, days, baseAmount, delivery, discount, amount: Math.max(0, baseAmount + delivery - discount) };
+      // Mirrors the backend: the refundable deposit is added after discount/tax.
+      const deposit = Math.max(0, car.securityDeposit ?? 0);
+      const rental = Math.max(0, baseAmount + delivery - discount);
+      return { hours, days, baseAmount, delivery, discount, deposit, rental, amount: rental + deposit };
     } catch {
-      return { hours: 0, days: 0, baseAmount: 0, delivery: 0, discount: 0, amount: 0 };
+      return { hours: 0, days: 0, baseAmount: 0, delivery: 0, discount: 0, deposit: 0, rental: 0, amount: 0 };
     }
   }, [
     values.pickupDate,
@@ -299,6 +312,7 @@ export function BookingForm({
     values.couponCode,
     car.pricePerDay,
     car.pricePerHour,
+    car.securityDeposit,
     homeDelivery,
     deliveryFee,
     coupon,
@@ -550,6 +564,37 @@ export function BookingForm({
         </Card>
 
         <Card className="p-5 sm:p-6">
+          <div className="flex items-start gap-3">
+            <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-navy-50 text-brand-deep">
+              <BadgeCheck className="size-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="font-display text-lg font-bold text-navy-900">Documents (KYC)</h2>
+                {user && (
+                  <span className="text-xs font-semibold text-navy-500">
+                    {kycVerified ? "All verified" : `${kycUploaded} of ${BOOKING_KYC_SLOTS.length} uploaded`}
+                  </span>
+                )}
+              </div>
+              <p className="mt-1 text-xs text-navy-500">
+                Upload both sides of your Aadhaar and Driving Licence. Documents must be verified before pickup.
+              </p>
+            </div>
+          </div>
+          <div className="mt-4">
+            {user ? (
+              <KycDocumentGrid slots={BOOKING_KYC_SLOTS} profile={kycProfile} onUploaded={reloadKyc} compact />
+            ) : (
+              <p className="rounded-2xl border border-dashed border-navy-200 bg-navy-50/60 p-4 text-sm text-navy-600">
+                You can upload your Aadhaar and DL (front &amp; back) right after verifying your mobile number when you confirm —
+                or later from <span className="font-semibold">My Account → Verification</span>.
+              </p>
+            )}
+          </div>
+        </Card>
+
+        <Card className="p-5 sm:p-6">
           <div className="flex items-center gap-3">
             <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-navy-50 text-brand-deep">
               <Banknote className="size-5" />
@@ -626,12 +671,6 @@ export function BookingForm({
                   <dd className="font-semibold text-navy-900">{formatINR(estimate.delivery)}</dd>
                 </div>
               )}
-              {car.securityDeposit ? (
-                <div className="flex items-center justify-between">
-                  <dt className="text-navy-500">Security deposit (refundable)</dt>
-                  <dd className="font-semibold text-navy-900">{formatINR(car.securityDeposit)}</dd>
-                </div>
-              ) : null}
               {estimate.discount > 0 && (
                 <div className="flex items-center justify-between text-brand-deep">
                   <dt className="flex items-center gap-2">
@@ -680,13 +719,54 @@ export function BookingForm({
               )}
             </div>
 
-            <div className="mt-4 flex items-baseline justify-between border-t border-dashed border-navy-100 pt-4">
-              <p className="font-display text-base font-bold text-navy-900">Estimated Total</p>
+            <dl className="mt-4 space-y-2 border-t border-dashed border-navy-100 pt-4 text-sm">
+              <div className="flex items-center justify-between">
+                <dt className="text-navy-500">Rental amount</dt>
+                <dd className="font-semibold text-navy-900">{formatINR(estimate.rental)}</dd>
+              </div>
+              {estimate.deposit > 0 && (
+                <div className="flex items-center justify-between">
+                  <dt className="text-navy-500">
+                    Security deposit
+                    <span className="block text-xs text-navy-400">Refundable after the car is returned</span>
+                  </dt>
+                  <dd className="font-semibold text-navy-900">+ {formatINR(estimate.deposit)}</dd>
+                </div>
+              )}
+            </dl>
+            <div className="mt-3 flex items-baseline justify-between border-t border-navy-100 pt-3">
+              <p className="font-display text-base font-bold text-navy-900">Total Payable</p>
               <p className="font-display text-2xl font-extrabold text-navy-900">{formatINR(estimate.amount)}</p>
             </div>
             <p className="mt-1 text-xs text-navy-400">
-              Taxes and any coupon discount are applied when you confirm. The refundable security deposit is not included in this total.
+              {estimate.deposit > 0 ? "Includes the refundable security deposit. " : ""}Taxes and any coupon discount are applied when you confirm.
             </p>
+
+            <div className="mt-5 rounded-2xl border border-navy-100 bg-navy-50/60 p-4">
+              <p className="font-display text-sm font-bold text-navy-900">Rental Terms</p>
+              <ul className="mt-2 space-y-1.5 text-xs text-navy-600">
+                {RENTAL_TERMS.map((t) => (
+                  <li key={t} className="flex items-start gap-2">
+                    <Check className="mt-0.5 size-3.5 shrink-0 text-brand-deep" /> {t}
+                  </li>
+                ))}
+              </ul>
+              <label className="mt-3 flex cursor-pointer items-start gap-2.5 border-t border-navy-100 pt-3 text-xs text-navy-700">
+                <input type="checkbox" className="mt-0.5 size-4 shrink-0 accent-[#1f7a36]" {...register("termsAccepted")} />
+                <span>
+                  I agree to the rental terms above, the{" "}
+                  <Link href="/terms-and-conditions" target="_blank" className="font-semibold text-brand-deep underline underline-offset-2">
+                    Terms &amp; Conditions
+                  </Link>{" "}
+                  and the{" "}
+                  <Link href="/cancellation-policy" target="_blank" className="font-semibold text-brand-deep underline underline-offset-2">
+                    Cancellation Policy
+                  </Link>
+                  .
+                </span>
+              </label>
+              {errors.termsAccepted && <p className="mt-1.5 text-xs text-red-600">{errors.termsAccepted.message}</p>}
+            </div>
 
             <Button type="submit" size="lg" className="mt-6 hidden w-full lg:inline-flex" disabled={submitting}>
               {submitting ? <Loader2 className="size-4 animate-spin" /> : paymentMethod === "COD" ? <ShieldCheck className="size-4" /> : <QrCode className="size-4" />}
@@ -698,15 +778,11 @@ export function BookingForm({
             </p>
             <p className="mt-2 text-center text-xs text-navy-400">Not logged in? You'll verify your mobile with a quick OTP when you confirm.</p>
 
-            {verification && verification.status !== "VERIFIED" && (
-              <Link
-                href="/dashboard/verification"
-                className="mt-4 flex items-center gap-2.5 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-900 transition-colors hover:border-amber-300"
-              >
+            {user && !kycVerified && (
+              <p className="mt-4 flex items-center gap-2.5 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-900">
                 <BadgeCheck className="size-4 shrink-0" />
-                KYC not completed yet — you can still book, but verify when you get a chance.
-                <ArrowRight className="ml-auto size-3.5 shrink-0" />
-              </Link>
+                Documents must be uploaded and verified before pickup — add them in the Documents section.
+              </p>
             )}
           </div>
         </Card>

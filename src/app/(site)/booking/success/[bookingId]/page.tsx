@@ -67,6 +67,12 @@ export default async function BookingSuccessPage({ params }: { params: Promise<{
               <dt className="text-navy-400">Payment</dt>
               <dd className="font-semibold text-navy-900">{isCod ? "Cash on Delivery" : booking.payment.method === "UPI_QR" ? "UPI QR" : "—"}</dd>
             </div>
+            {!!booking.securityDeposit && (
+              <div className="flex justify-between">
+                <dt className="text-navy-400">Security deposit (refundable)</dt>
+                <dd className="font-semibold text-navy-900">{formatINR(booking.securityDeposit)}</dd>
+              </div>
+            )}
             <div className="flex justify-between border-t border-navy-100 pt-2 text-base font-bold text-navy-900">
               <dt>Total</dt>
               <dd>{formatINR(booking.totalAmount)}</dd>

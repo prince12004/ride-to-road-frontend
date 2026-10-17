@@ -52,6 +52,7 @@ const NAV: NavItem[] = [
     icon: CalendarClock,
     module: "bookings",
     children: [
+      { label: "All Bookings", href: "/admin/bookings" },
       { label: "Pending Payments", href: "/admin/bookings/pending-payments" },
       { label: "Offline Booking", href: "/admin/bookings/offline" },
     ],

@@ -152,6 +152,8 @@ export interface Booking {
   taxAmount: number;
   discountAmount: number;
   totalAmount: number;
+  /** Refundable deposit, already included in totalAmount. */
+  securityDeposit?: number;
   extensionCharges?: number;
   extensions?: BookingExtension[];
   payment: {
@@ -377,7 +379,7 @@ export interface AdminBookingDetail extends Omit<Booking, "car" | "pickupLocatio
   car: AdminCarDoc;
   pickupLocation: AdminLocationDoc;
   dropLocation: AdminLocationDoc;
-  user?: { name: string; email?: string; mobile: string };
+  user?: { _id: string; name: string; email?: string; mobile: string };
   coupon?: { code: string };
 }
 
