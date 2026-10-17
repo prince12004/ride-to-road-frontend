@@ -66,9 +66,9 @@ export async function getFeaturedCars(limit = 4) {
   return data<Car[]>(`/cars?featured=true&limit=${limit}`, [TAGS.cars]);
 }
 
-/** Homepage fleet: admin-featured cars first, then newest (sorted by the API). */
-export async function getHomeCars(limit = 12) {
-  return data<Car[]>(`/cars?limit=${limit}`, [TAGS.cars]);
+/** Homepage fleet: the newest cars that can be booked right now (no "Sold Out"). */
+export async function getHomeCars(limit = 8) {
+  return data<Car[]>(`/cars?limit=${limit}&availableOnly=true&sort=latest`, [TAGS.cars]);
 }
 
 export async function getCarBySlug(slug: string): Promise<CarDetail | null> {
