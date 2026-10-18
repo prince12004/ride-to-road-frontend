@@ -140,6 +140,18 @@ export default async function CarDetailPage({ params, searchParams }: CarDetailP
 
               <div className="p-6">
                 <dl className="space-y-2.5 text-sm">
+                  <div className="flex justify-between">
+                    <dt className="text-navy-500">Free km</dt>
+                    <dd className="font-semibold text-navy-900">{car.kmPerDay ?? 300} km / 24 hrs</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-navy-500">Extra km</dt>
+                    <dd className="font-semibold text-navy-900">{formatINR(car.extraKmRate ?? 0)}/km</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-navy-500">Minimum booking</dt>
+                    <dd className="font-semibold text-navy-900">24 hours</dd>
+                  </div>
                   {car.securityDeposit ? (
                     <div className="flex justify-between">
                       <dt className="text-navy-500">Security deposit (refundable)</dt>

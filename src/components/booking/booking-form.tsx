@@ -23,6 +23,7 @@ import {
   QrCode,
   Tag,
   Clock3,
+  Gauge,
   UserRound,
   X,
 } from "lucide-react";
@@ -38,7 +39,8 @@ import { toast } from "@/store/toast-store";
 import { useAuthStore } from "@/store/auth-store";
 import { cn, formatINR, todayInIndia } from "@/lib/utils";
 import { labelForTime } from "@/lib/time-slots";
-import { calculateBaseAmount, effectiveDailyRate, MIN_RENTAL_HOURS } from "@/lib/pricing";
+import { RENTAL_TERMS } from "@/config/rental-terms";
+import { calculateBaseAmount, DEFAULT_KM_PER_DAY, effectiveDailyRate, formatDuration, includedKm, MIN_RENTAL_HOURS } from "@/lib/pricing";
 import { BOOKING_KYC_SLOTS, KycDocumentGrid, slotState, useKycProfile } from "@/components/kyc/kyc-documents";
 import type { CarDetail, Location, Booking } from "@/types";
 
@@ -80,14 +82,6 @@ const schema = z.object({
 });
 
 // Shown before the customer confirms (from the business's rental rules).
-const RENTAL_TERMS = [
-  "Minimum age: 21 years",
-  "Speed limit: 120 km/h",
-  "No smoking inside the vehicle",
-  "Driver must carry the original Driving Licence",
-  "Fuel to be refilled to the same level before return",
-  "No outstation travel without prior approval",
-];
 
 type FormValues = z.infer<typeof schema>;
 
@@ -356,9 +350,10 @@ export function BookingForm({
       // Mirrors the backend: the refundable deposit is added after discount/tax.
       const deposit = Math.max(0, car.securityDeposit ?? 0);
       const rental = Math.max(0, baseAmount + delivery - discount);
-      return { hours, days, baseAmount, delivery, discount, deposit, rental, amount: rental + deposit };
+      const freeKm = includedKm(hours, car.kmPerDay ?? DEFAULT_KM_PER_DAY);
+      return { hours, days, baseAmount, delivery, discount, deposit, rental, amount: rental + deposit, freeKm };
     } catch {
-      return { hours: 0, days: 0, baseAmount: 0, delivery: 0, discount: 0, deposit: 0, rental: 0, amount: 0 };
+      return { hours: 0, days: 0, baseAmount: 0, delivery: 0, discount: 0, deposit: 0, rental: 0, amount: 0, freeKm: 0 };
     }
   }, [
     values.pickupDate,
@@ -727,8 +722,23 @@ export function BookingForm({
                 <dt className="flex items-center gap-2 text-navy-500">
                   <Clock3 className="size-4 text-navy-400" /> Duration
                 </dt>
-                <dd className="font-semibold text-navy-900">
-                  {estimate.days} day{estimate.days !== 1 ? "s" : ""} ({estimate.hours} hrs)
+                <dd className="text-right font-semibold text-navy-900">
+                  {formatDuration(estimate.hours)}
+                  {estimate.hours < MIN_RENTAL_HOURS && (
+                    <span className="block text-xs font-normal text-red-600">Minimum {MIN_RENTAL_HOURS} hours</span>
+                  )}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between">
+                <dt className="flex items-center gap-2 text-navy-500">
+                  <Gauge className="size-4 text-navy-400" /> Free km
+                </dt>
+                <dd className="text-right font-semibold text-navy-900">
+                  {estimate.freeKm.toLocaleString("en-IN")} km
+                  <span className="block text-xs font-normal text-navy-400">
+                    {car.kmPerDay ?? DEFAULT_KM_PER_DAY} km per 24 hrs
+                    {car.extraKmRate ? ` · extra ${formatINR(car.extraKmRate)}/km` : ""}
+                  </span>
                 </dd>
               </div>
               <div className="flex items-center justify-between">
@@ -878,7 +888,7 @@ export function BookingForm({
         <div className="flex items-center gap-3">
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-navy-400">
-              {estimate.days} day{estimate.days !== 1 ? "s" : ""} · Total
+              {formatDuration(estimate.hours)} · Total
             </p>
             <p className="font-display text-xl font-extrabold text-navy-900">{formatINR(estimate.amount)}</p>
           </div>

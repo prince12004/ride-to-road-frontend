@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { apiFetch, ApiClientError } from "@/lib/api";
 import { toast } from "@/store/toast-store";
-import { formatINR } from "@/lib/utils";
+import { formatDateTimeIST, formatINR, istDateInput, istInstant, istTimeInput } from "@/lib/utils";
+import { formatDuration } from "@/lib/pricing";
 import type { AdminBookingDetail } from "@/types";
 
 interface Quote {
@@ -22,15 +23,9 @@ interface Quote {
   balanceAfter: number;
 }
 
-function toDateInput(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-function toTimeInput(d: Date) {
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-}
-function fmt(date: string | Date) {
-  return new Date(date).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
-}
+const toDateInput = istDateInput;
+const toTimeInput = istTimeInput;
+const fmt = formatDateTimeIST;
 
 /**
  * Extends a booking. The charge is calculated by the API from the rates the
@@ -84,6 +79,14 @@ export function ExtendBookingCard({ booking, onExtended }: { booking: AdminBooki
       toast({ title: "Enter a valid amount", variant: "error" });
       return;
     }
+    const summary = [
+      `Previous return: ${fmt(currentDrop)}`,
+      `New return: ${fmt(istInstant(date, time))}`,
+      `Extra duration: ${formatDuration(quote.extraHours)}`,
+      `Extension amount: ${formatINR(finalAmount)}`,
+      `New booking total: ${formatINR(booking.totalAmount + finalAmount)}`,
+    ].join("\n");
+    if (!confirm(`Confirm extension?\n\n${summary}`)) return;
     setSaving(true);
     try {
       await apiFetch(`/admin/bookings/${booking._id}/extend`, {
@@ -128,11 +131,17 @@ export function ExtendBookingCard({ booking, onExtended }: { booking: AdminBooki
           <p className="text-red-600">{quoteError}</p>
         ) : quote ? (
           <dl className="space-y-1.5">
+            <div className="flex justify-between gap-3">
+              <dt className="text-navy-500">Previous return</dt>
+              <dd className="text-right font-semibold text-navy-900">{fmt(currentDrop)}</dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt className="text-navy-500">New return</dt>
+              <dd className="text-right font-semibold text-navy-900">{fmt(istInstant(date, time))}</dd>
+            </div>
             <div className="flex justify-between">
-              <dt className="text-navy-500">Extension</dt>
-              <dd className="font-semibold text-navy-900">
-                +{quote.extraHours} hrs ({Math.floor(quote.extraHours / 24)}d {quote.extraHours % 24}h)
-              </dd>
+              <dt className="text-navy-500">Extra duration</dt>
+              <dd className="font-semibold text-navy-900">+{formatDuration(quote.extraHours)}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-navy-500">Rate applied</dt>
@@ -148,7 +157,7 @@ export function ExtendBookingCard({ booking, onExtended }: { booking: AdminBooki
               <dd className="font-display text-base font-bold text-navy-900">{formatINR(quote.amount)}</dd>
             </div>
             <div className="flex justify-between text-xs text-navy-500">
-              <dt>New total · balance due after</dt>
+              <dt>New booking total · balance due after</dt>
               <dd>
                 {formatINR(booking.totalAmount + finalAmount)} · {formatINR(quote.balanceAfter - quote.amount + finalAmount)}
               </dd>

@@ -7,11 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PaymentStatusBadge } from "@/components/admin/status-badge";
 import { apiFetch, ApiClientError } from "@/lib/api";
 import { toast } from "@/store/toast-store";
 import { formatINR } from "@/lib/utils";
-import type { AdminBookingDetail } from "@/types";
+import { ONLINE_METHOD_LABELS, type AdminBookingDetail, type OnlinePaymentMethod } from "@/types";
 
 function nowLocalInput() {
   const d = new Date();
@@ -42,6 +43,7 @@ export function PaymentCollectionCard({ booking, onRecorded }: { booking: AdminB
   const [open, setOpen] = useState(false);
   const [cash, setCash] = useState("");
   const [online, setOnline] = useState("");
+  const [onlineMethod, setOnlineMethod] = useState<OnlinePaymentMethod>("UPI");
   const [reference, setReference] = useState("");
   const [receivedAt, setReceivedAt] = useState(nowLocalInput);
   const [note, setNote] = useState("");
@@ -56,6 +58,7 @@ export function PaymentCollectionCard({ booking, onRecorded }: { booking: AdminB
     setCash("");
     setOnline("");
     setReference("");
+    setOnlineMethod("UPI");
     setNote("");
     setReceivedAt(nowLocalInput());
     setError("");
@@ -81,6 +84,7 @@ export function PaymentCollectionCard({ booking, onRecorded }: { booking: AdminB
         body: JSON.stringify({
           cashAmount: cashNum || undefined,
           onlineAmount: onlineNum || undefined,
+          onlineMethod: onlineNum > 0 ? onlineMethod : undefined,
           reference: onlineNum > 0 ? reference.trim() : undefined,
           receivedAt: receivedAt ? new Date(receivedAt).toISOString() : undefined,
           note: note.trim() || undefined,
@@ -100,7 +104,7 @@ export function PaymentCollectionCard({ booking, onRecorded }: { booking: AdminB
   return (
     <Card className="p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-display text-lg font-bold text-navy-900">Payment Collection</h2>
+        <h2 className="font-display text-lg font-bold text-navy-900">Receive Payment</h2>
         <PaymentStatusBadge status={booking.payment.status} />
       </div>
 
@@ -124,13 +128,14 @@ export function PaymentCollectionCard({ booking, onRecorded }: { booking: AdminB
       {collections.length > 0 && (
         <div className="mt-5 overflow-x-auto">
           <p className="text-sm font-semibold text-navy-900">Payment history</p>
-          <table className="mt-2 w-full text-left text-sm">
+          <table className="mt-2 w-full whitespace-nowrap text-left text-sm">
             <thead>
               <tr className="border-b border-navy-100 text-xs uppercase tracking-wide text-navy-400">
                 <th className="py-2 pr-3">Received</th>
                 <th className="py-2 pr-3">Mode</th>
                 <th className="py-2 pr-3">Amount</th>
-                <th className="py-2">UTR / Ref.</th>
+                <th className="py-2 pr-3">UTR / Ref.</th>
+                <th className="py-2">Recorded by</th>
               </tr>
             </thead>
             <tbody>
@@ -140,12 +145,16 @@ export function PaymentCollectionCard({ booking, onRecorded }: { booking: AdminB
                   <td className="py-2 pr-3">
                     <span className="inline-flex items-center gap-1 font-semibold text-navy-900">
                       {c.mode === "CASH" ? <Banknote className="size-3.5" /> : <Smartphone className="size-3.5" />}
-                      {c.mode === "CASH" ? "Cash" : "Online"}
+                      {c.mode === "CASH" ? "Cash" : c.method ? ONLINE_METHOD_LABELS[c.method] : "Online"}
                     </span>
                     {c.note && <span className="block text-xs text-navy-400">{c.note}</span>}
                   </td>
                   <td className="py-2 pr-3 font-semibold text-navy-900">{formatINR(c.amount)}</td>
-                  <td className="break-all py-2 font-mono text-xs text-navy-700">{c.reference ?? "—"}</td>
+                  <td className="py-2 pr-3 font-mono text-xs text-navy-700">{c.reference ?? "—"}</td>
+                  <td className="py-2 text-xs text-navy-600">
+                    {typeof c.recordedBy === "object" && c.recordedBy ? c.recordedBy.name : "—"}
+                    <span className="block text-navy-400">{fmt(c.createdAt)}</span>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -157,7 +166,7 @@ export function PaymentCollectionCard({ booking, onRecorded }: { booking: AdminB
         <div className="mt-5 border-t border-navy-100 pt-5">
           {!open ? (
             <Button type="button" onClick={() => setOpen(true)}>
-              <Plus className="size-4" /> Record Payment
+              <Plus className="size-4" /> Receive Payment
             </Button>
           ) : (
             <div className="space-y-3">
@@ -172,23 +181,52 @@ export function PaymentCollectionCard({ booking, onRecorded }: { booking: AdminB
                 </div>
               </div>
               {onlineNum > 0 && (
-                <div>
-                  <Label htmlFor="pc-ref">UTR / Transaction ID</Label>
-                  <Input id="pc-ref" className="mt-1.5 font-mono" placeholder="e.g. 428615937204" value={reference} onChange={(e) => setReference(e.target.value)} />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Online method</Label>
+                    <Select value={onlineMethod} onValueChange={(v) => setOnlineMethod(v as OnlinePaymentMethod)}>
+                      <SelectTrigger className="mt-1.5 h-11 rounded-xl border border-navy-200 px-3">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(Object.keys(ONLINE_METHOD_LABELS) as OnlinePaymentMethod[]).map((m) => (
+                          <SelectItem key={m} value={m}>
+                            {ONLINE_METHOD_LABELS[m]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="pc-ref">UTR / Transaction ID</Label>
+                    <Input id="pc-ref" className="mt-1.5 font-mono" placeholder="e.g. 428615937204" value={reference} onChange={(e) => setReference(e.target.value)} />
+                  </div>
                 </div>
               )}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="pc-at">Received on</Label>
-                  <Input id="pc-at" type="datetime-local" className="mt-1.5" value={receivedAt} onChange={(e) => setReceivedAt(e.target.value)} />
-                </div>
-                <div className="rounded-2xl bg-navy-50 p-3 text-sm">
-                  <p className="text-xs text-navy-400">After this entry</p>
-                  <p className="font-semibold text-navy-900">
-                    {entering > 0 ? (entering >= balance ? "Fully Paid" : `Partially Paid · ${formatINR(balance - entering)} due`) : `${formatINR(balance)} due`}
-                  </p>
-                </div>
+              <div>
+                <Label htmlFor="pc-at">Received on</Label>
+                <Input id="pc-at" type="datetime-local" className="mt-1.5" value={receivedAt} onChange={(e) => setReceivedAt(e.target.value)} />
               </div>
+              <dl className="space-y-1 rounded-2xl bg-navy-50 p-4 text-sm">
+                {[
+                  ["Previously received", formatINR(received)],
+                  ["New cash", formatINR(cashNum || 0)],
+                  ["New online", formatINR(onlineNum || 0)],
+                  ["Total received", formatINR(received + (entering || 0))],
+                  ["Balance after", formatINR(Math.max(0, balance - (entering || 0)))],
+                ].map(([k, v]) => (
+                  <div key={k} className="flex justify-between gap-3">
+                    <dt className="text-navy-500">{k}</dt>
+                    <dd className="font-semibold text-navy-900">{v}</dd>
+                  </div>
+                ))}
+                <div className="flex justify-between gap-3 border-t border-navy-200 pt-1.5">
+                  <dt className="text-navy-500">Status after</dt>
+                  <dd className="font-bold text-navy-900">
+                    {entering > balance ? "Exceeds balance" : received + entering >= booking.totalAmount ? "Paid" : received + entering > 0 ? "Partially Paid" : "Pending"}
+                  </dd>
+                </div>
+              </dl>
               <Textarea placeholder="Note (optional)" rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
               {error && <p className="text-sm text-red-600">{error}</p>}
               <div className="flex flex-wrap gap-2">

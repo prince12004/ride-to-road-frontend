@@ -9,8 +9,9 @@ import { BookingStatusTimeline } from "@/components/booking/booking-status-timel
 import { PaymentPanel } from "@/components/booking/payment-panel";
 import { DeliveryAddress } from "@/components/booking/delivery-address";
 import { formatINR } from "@/lib/utils";
+import { formatDuration } from "@/lib/pricing";
 import { whatsappLink } from "@/lib/whatsapp";
-import { PAYMENT_METHOD_LABELS, PAYMENT_STATUS_LABELS, type Booking, type BookingStatusHistoryEntry, type Location } from "@/types";
+import { PAYMENT_METHOD_LABELS, PAYMENT_STATUS_LABELS, type Booking, type BookingStatusHistoryEntry, type BookingSummary, type Location } from "@/types";
 
 interface BookingCarSummary {
   name: string;
@@ -20,7 +21,7 @@ interface BookingCarSummary {
 
 async function getBooking(bookingId: string) {
   try {
-    const res = await serverFetch<{ booking: Booking; history: BookingStatusHistoryEntry[] }>(`/bookings/${bookingId}`, {
+    const res = await serverFetch<{ booking: Booking; history: BookingStatusHistoryEntry[]; summary?: BookingSummary }>(`/bookings/${bookingId}`, {
       revalidate: 0,
     });
     return res.data;
@@ -34,7 +35,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
   const { bookingId } = await params;
   const data = await getBooking(bookingId);
   if (!data) notFound();
-  const { booking } = data;
+  const { booking, summary } = data;
 
   const car = typeof booking.car === "object" ? (booking.car as BookingCarSummary) : null;
   const pickupLocation = typeof booking.pickupLocation === "object" ? (booking.pickupLocation as Location) : null;
@@ -113,8 +114,19 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
               )}
               <div>
                 <dt className="text-navy-400">Duration</dt>
-                <dd className="font-semibold text-navy-900">{booking.durationHours} hours</dd>
+                <dd className="font-semibold text-navy-900">{formatDuration(booking.durationHours)}</dd>
               </div>
+              {summary && (
+                <div>
+                  <dt className="text-navy-400">Free KM</dt>
+                  <dd className="font-semibold text-navy-900">
+                    {summary.includedKm.toLocaleString("en-IN")} km
+                    <span className="block text-xs font-normal text-navy-400">
+                      {summary.kmPerDay} km / 24 hrs{summary.extraKmRate ? ` · extra ${formatINR(summary.extraKmRate)}/km` : ""}
+                    </span>
+                  </dd>
+                </div>
+              )}
               <div>
                 <dt className="flex items-center gap-1 text-navy-400">
                   <CalendarDays className="size-3.5" /> Pickup
@@ -166,6 +178,18 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
                   <span className="font-medium text-navy-900">{formatINR(booking.extensionCharges)}</span>
                 </div>
               )}
+              {!!booking.closure?.extraKmCharge && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-navy-500">Extra KM ({booking.closure.extraKm} km)</span>
+                  <span className="font-medium text-navy-900">{formatINR(booking.closure.extraKmCharge)}</span>
+                </div>
+              )}
+              {!!booking.closure?.otherCharges && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-navy-500">Other Charges{booking.closure.otherChargesNote ? ` (${booking.closure.otherChargesNote})` : ""}</span>
+                  <span className="font-medium text-navy-900">{formatINR(booking.closure.otherCharges)}</span>
+                </div>
+              )}
               {!!booking.securityDeposit && (
                 <div className="flex justify-between text-sm">
                   <span className="text-navy-500">Security Deposit (refundable)</span>
@@ -187,10 +211,10 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
                   {booking.payment.method ? PAYMENT_METHOD_LABELS[booking.payment.method] : "—"} · {PAYMENT_STATUS_LABELS[booking.payment.status] ?? booking.payment.status}
                 </span>
               </p>
-              {booking.payment.status === "PARTIALLY_PAID" && typeof booking.payment.amountReceived === "number" && (
+              {summary && summary.amountReceived > 0 && (
                 <p className="mt-1 text-xs text-navy-500">
-                  Received {formatINR(booking.payment.amountReceived)} · Balance due{" "}
-                  <span className="font-semibold text-navy-900">{formatINR(Math.max(0, booking.totalAmount - booking.payment.amountReceived))}</span>
+                  Received {formatINR(summary.amountReceived)} · Balance due{" "}
+                  <span className="font-semibold text-navy-900">{formatINR(summary.balanceDue)}</span>
                 </p>
               )}
             </div>

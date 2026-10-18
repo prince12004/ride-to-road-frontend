@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Loader2, Search, Users as UsersIcon } from "lucide-react";
+import { Loader2, Search, Trash2, Users as UsersIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,7 @@ import { AdminPagination } from "@/components/admin/pagination";
 import { VerificationStatusBadge } from "@/components/admin/status-badge";
 import { apiFetch, ApiClientError } from "@/lib/api";
 import { toast } from "@/store/toast-store";
+import { useAdminAuthStore } from "@/store/admin-auth-store";
 import type { AdminCustomer } from "@/types";
 
 export default function AdminCustomersPage() {
@@ -23,6 +24,9 @@ export default function AdminCustomersPage() {
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const role = useAdminAuthStore((s) => s.admin?.role);
+  const canDelete = role === "SUPER_ADMIN" || role === "ADMIN";
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -46,6 +50,21 @@ export default function AdminCustomersPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  const handleDelete = async (c: AdminCustomer) => {
+    if (!confirm(`Delete customer ${c.name} (${c.mobile})? Their account and uploaded documents will be removed. This cannot be undone.`)) return;
+    setDeletingId(c._id);
+    try {
+      await apiFetch(`/admin/customers/${c._id}`, { method: "DELETE" });
+      toast({ title: "Customer deleted", variant: "success" });
+      load();
+    } catch (err) {
+      toast({ title: "Could not delete customer", description: err instanceof ApiClientError ? err.message : "Try again.", variant: "error" });
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   return (
     <div>
@@ -123,9 +142,23 @@ export default function AdminCustomersPage() {
                   </td>
                   <td className="p-4 text-navy-400">{new Date(c.createdAt).toLocaleDateString("en-IN")}</td>
                   <td className="p-4 text-right">
-                    <Link href={`/admin/customers/${c._id}`} className="text-sm font-semibold text-brand-deep hover:underline">
-                      View
-                    </Link>
+                    <div className="inline-flex items-center gap-3">
+                      <Link href={`/admin/customers/${c._id}`} className="text-sm font-semibold text-brand-deep hover:underline">
+                        View
+                      </Link>
+                      {canDelete && !c.bookingsCount && (
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(c)}
+                          disabled={deletingId === c._id}
+                          className="text-red-500 hover:text-red-700 disabled:opacity-50"
+                          aria-label={`Delete ${c.name}`}
+                          title="Delete customer (only possible with no bookings)"
+                        >
+                          {deletingId === c._id ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

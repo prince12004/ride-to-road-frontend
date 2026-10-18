@@ -57,11 +57,16 @@ function UserMenu() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="grid size-10 place-items-center rounded-full bg-navy-900 font-display text-xs font-extrabold text-white transition-opacity hover:opacity-90"
+        className="grid size-10 place-items-center overflow-hidden rounded-full bg-navy-900 font-display text-xs font-extrabold text-white transition-opacity hover:opacity-90"
         aria-label="Account menu"
         aria-expanded={open}
       >
-        {initials(user.name, user.mobile)}
+        {user.profileImage?.url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={user.profileImage.url} alt="" className="size-full object-cover" />
+        ) : (
+          initials(user.name, user.mobile)
+        )}
       </button>
       {open && (
         <>

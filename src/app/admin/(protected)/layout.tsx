@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Loader2, X } from "lucide-react";
 import { AdminSidebar } from "@/components/admin/sidebar";
 import { AdminTopbar } from "@/components/admin/topbar";
@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 
 export default function ProtectedAdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { admin, accessToken, isHydrated, fetchMe } = useAdminAuthStore();
   const [checking, setChecking] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -44,6 +45,9 @@ export default function ProtectedAdminLayout({ children }: { children: React.Rea
     );
   }
 
+  // Printable pages (booking form) render without the admin chrome.
+  if (pathname.endsWith("/print")) return <>{children}</>;
+
   return (
     <div className="min-h-screen">
       <AdminSidebar />
@@ -66,7 +70,7 @@ export default function ProtectedAdminLayout({ children }: { children: React.Rea
 
       <div className={cn("flex min-h-screen flex-col lg:pl-64")}>
         <AdminTopbar onMenuClick={() => setMobileOpen(true)} />
-        <main className="flex-1 p-4 lg:p-8">{children}</main>
+        <main className="admin-main min-w-0 flex-1 p-4 lg:p-8">{children}</main>
       </div>
     </div>
   );

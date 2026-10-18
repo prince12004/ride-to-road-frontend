@@ -103,6 +103,10 @@ export interface CarDetail extends Car {
   weeklyPrice?: number;
   monthlyPrice?: number;
   securityDeposit?: number;
+  /** ₹ per km beyond the included km allowance. */
+  extraKmRate?: number;
+  /** Km included per completed 24 hours (from booking settings). */
+  kmPerDay?: number;
   description?: string;
   features: string[];
   specifications: { label: string; value: string }[];
@@ -137,14 +141,57 @@ export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
   NOT_APPLICABLE: "—",
 };
 
+export type OnlinePaymentMethod = "UPI" | "BANK_TRANSFER" | "CARD" | "OTHER";
+
+export const ONLINE_METHOD_LABELS: Record<OnlinePaymentMethod, string> = {
+  UPI: "UPI",
+  BANK_TRANSFER: "Bank Transfer",
+  CARD: "Card",
+  OTHER: "Other online",
+};
+
 export interface PaymentCollection {
   _id: string;
   mode: "CASH" | "ONLINE";
+  method?: OnlinePaymentMethod;
   amount: number;
   reference?: string;
   receivedAt: string;
   note?: string;
+  /** Populated with the admin's name on admin endpoints. */
+  recordedBy?: { _id: string; name: string } | string;
   createdAt: string;
+}
+
+/** Km driven, extra-km and other charges recorded when a booking is closed. */
+export interface BookingClosure {
+  closedAt: string;
+  odometerStart?: number;
+  odometerEnd?: number;
+  kmDriven: number;
+  includedKm: number;
+  extraKm: number;
+  extraKmCharge: number;
+  otherCharges: number;
+  otherChargesNote?: string;
+  notes?: string;
+  closedBy?: { _id: string; name: string } | string;
+}
+
+/** Figures computed by the API for a booking — the single source for every screen and the PDF. */
+export interface BookingSummary {
+  durationHours: number;
+  durationDays: number;
+  durationRemainderHours: number;
+  dailyRate?: number;
+  hourlyRate?: number;
+  kmPerDay: number;
+  extraKmRate: number;
+  includedKm: number;
+  amountReceived: number;
+  cashReceived: number;
+  onlineReceived: number;
+  balanceDue: number;
 }
 export type PaymentMethod = "RAZORPAY" | "COD" | "UPI_QR" | "OFFLINE_CASH" | "OFFLINE_UPI" | "OFFLINE_OTHER";
 
@@ -198,6 +245,8 @@ export interface Booking {
     reviewNote?: string;
     reviewedAt?: string;
   };
+  kmPolicy?: { kmPerDay: number; extraKmRate: number };
+  closure?: BookingClosure;
   status: BookingStatus;
   source: "ONLINE" | "ADMIN_OFFLINE";
   specialRequest?: string;
@@ -263,7 +312,7 @@ export interface UserProfile {
   city?: string;
   state?: string;
   pincode?: string;
-  profileImage?: string;
+  profileImage?: { url: string };
   verification: Verification;
   isBlocked: boolean;
   isVerifiedMobile: boolean;
@@ -384,6 +433,9 @@ export interface AdminCarDoc {
   weeklyPrice?: number;
   monthlyPrice?: number;
   securityDeposit?: number;
+  /** ₹ per km beyond the included km allowance. */
+  extraKmRate?: number;
+  registrationNumber?: string;
   homeDelivery?: HomeDelivery;
   description?: string;
   features: string[];
@@ -413,6 +465,22 @@ export interface AdminBookingDetail extends Omit<Booking, "car" | "pickupLocatio
   dropLocation: AdminLocationDoc;
   user?: { _id: string; name: string; email?: string; mobile: string };
   coupon?: { code: string };
+}
+
+/** Customer profile + KYC documents attached to the admin booking view. */
+export interface BookingCustomer {
+  matchedBy: "account" | "mobile";
+  _id: string;
+  name: string;
+  email?: string;
+  mobile: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  profileImage?: { url: string };
+  verificationStatus?: VerificationStatus;
+  documents: { type: string; url: string; isPdf: boolean }[];
 }
 
 export interface BookingHistoryEntry {
@@ -585,6 +653,8 @@ export interface CmsSettings {
   booking: {
     minRentalHours: number;
     maxRentalDays: number;
+    /** Km included per completed 24 hours (default 300). */
+    kmPerDay?: number;
     taxPercent: number;
     cancellationRulesText?: string;
   };

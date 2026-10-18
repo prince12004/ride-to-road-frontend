@@ -126,3 +126,18 @@
     flex-shrink: 0;
   }
 }
+
+/* Admin tables: one line per cell and sideways scroll on small screens, so
+   headers, statuses and action buttons stay aligned. Long-text cells (given
+   a max-w-* width) still wrap. */
+.admin-main table {
+  white-space: nowrap;
+}
+.admin-main table th,
+.admin-main table td {
+  vertical-align: middle;
+}
+.admin-main table td[class*="max-w-"]:not(.truncate) {
+  white-space: normal;
+  min-width: 14rem;
+}

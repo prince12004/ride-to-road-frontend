@@ -29,6 +29,8 @@ export interface CarFormValues {
   weeklyPrice: string;
   monthlyPrice: string;
   securityDeposit: string;
+  extraKmRate: string;
+  registrationNumber: string;
   homeDeliveryAvailable: boolean;
   homeDeliveryPrice: string;
   description: string;
@@ -60,6 +62,8 @@ const emptyValues: CarFormValues = {
   weeklyPrice: "",
   monthlyPrice: "",
   securityDeposit: "",
+  extraKmRate: "",
+  registrationNumber: "",
   homeDeliveryAvailable: false,
   homeDeliveryPrice: "",
   description: "",
@@ -92,6 +96,8 @@ export function carDocToFormValues(car: AdminCarDoc): CarFormValues {
     weeklyPrice: car.weeklyPrice != null ? String(car.weeklyPrice) : "",
     monthlyPrice: car.monthlyPrice != null ? String(car.monthlyPrice) : "",
     securityDeposit: car.securityDeposit != null ? String(car.securityDeposit) : "",
+    extraKmRate: car.extraKmRate ? String(car.extraKmRate) : "",
+    registrationNumber: car.registrationNumber ?? "",
     homeDeliveryAvailable: car.homeDelivery?.available ?? false,
     homeDeliveryPrice: car.homeDelivery?.price != null ? String(car.homeDelivery.price) : "",
     description: car.description ?? "",
@@ -134,6 +140,8 @@ function buildPayload(v: CarFormValues) {
     weeklyPrice: v.weeklyPrice ? Number(v.weeklyPrice) : null,
     monthlyPrice: v.monthlyPrice ? Number(v.monthlyPrice) : null,
     securityDeposit: v.securityDeposit ? Number(v.securityDeposit) : undefined,
+    extraKmRate: v.extraKmRate ? Math.max(0, Number(v.extraKmRate)) : 0,
+    registrationNumber: v.registrationNumber.trim().toUpperCase(),
     homeDelivery: {
       available: v.homeDeliveryAvailable,
       price: v.homeDeliveryPrice ? Number(v.homeDeliveryPrice) : 0,
@@ -196,6 +204,10 @@ export function CarForm({ initial, carId }: { initial?: AdminCarDoc; carId?: str
       toast({ title: "Price required", description: "Enter the hourly price (the daily price is calculated from it).", variant: "error" });
       return;
     }
+    if (values.extraKmRate && (!Number.isFinite(Number(values.extraKmRate)) || Number(values.extraKmRate) < 0)) {
+      toast({ title: "Invalid extra km charge", description: "Enter 0 or a positive amount per km.", variant: "error" });
+      return;
+    }
     if (!values.mainImage) {
       toast({ title: "Main image required", description: "Upload a main image for this car.", variant: "error" });
       return;
@@ -234,6 +246,16 @@ export function CarForm({ initial, carId }: { initial?: AdminCarDoc; carId?: str
           <div>
             <Label>Model</Label>
             <Input className="mt-1.5" value={values.model} onChange={(e) => set("model", e.target.value)} placeholder="e.g. SX 2023" />
+          </div>
+          <div>
+            <Label>Registration Number</Label>
+            <Input
+              className="mt-1.5 uppercase"
+              value={values.registrationNumber}
+              onChange={(e) => set("registrationNumber", e.target.value)}
+              placeholder="e.g. DL01AB1234"
+              maxLength={15}
+            />
           </div>
           <div>
             <Label>Category</Label>
@@ -418,6 +440,19 @@ export function CarForm({ initial, carId }: { initial?: AdminCarDoc; carId?: str
           <div>
             <Label>Security Deposit (₹)</Label>
             <Input className="mt-1.5" type="number" value={values.securityDeposit} onChange={(e) => set("securityDeposit", e.target.value)} />
+          </div>
+          <div>
+            <Label>Extra KM Charge (₹/km)</Label>
+            <Input
+              className="mt-1.5"
+              type="number"
+              min={0}
+              step="0.5"
+              value={values.extraKmRate}
+              onChange={(e) => set("extraKmRate", e.target.value)}
+              placeholder="e.g. 10"
+            />
+            <p className="mt-1 text-xs text-navy-400">Charged per km beyond the free km allowance.</p>
           </div>
         </div>
       </Card>

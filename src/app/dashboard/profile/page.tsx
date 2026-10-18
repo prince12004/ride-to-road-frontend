@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, Save } from "lucide-react";
+import { Camera, Loader2, Save, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,6 +30,8 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [mobile, setMobile] = useState("");
+  const [photo, setPhoto] = useState<string | undefined>();
+  const [photoBusy, setPhotoBusy] = useState(false);
 
   const {
     register,
@@ -47,6 +49,7 @@ export default function ProfilePage() {
       try {
         const res = await apiFetch<UserProfile>("/auth/me");
         setMobile(res.data.mobile);
+        setPhoto(res.data.profileImage?.url);
         reset({
           name: res.data.name || "",
           email: res.data.email || "",
@@ -87,6 +90,47 @@ export default function ProfilePage() {
     }
   };
 
+  const handlePhoto = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      toast({ title: "Unsupported file", description: "Upload a JPG, PNG or WEBP photo.", variant: "error" });
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: "Photo too large", description: "Maximum size is 2MB.", variant: "error" });
+      return;
+    }
+    setPhotoBusy(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await apiFetch<{ profileImage: { url: string } }>("/user/profile/image", { method: "POST", body: fd });
+      setPhoto(res.data.profileImage.url);
+      await fetchMe();
+      toast({ title: "Profile photo updated", variant: "success" });
+    } catch (err) {
+      toast({ title: "Upload failed", description: err instanceof ApiClientError ? err.message : "Please try again.", variant: "error" });
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
+
+  const removePhoto = async () => {
+    if (!confirm("Remove your profile photo?")) return;
+    setPhotoBusy(true);
+    try {
+      await apiFetch("/user/profile/image", { method: "DELETE" });
+      setPhoto(undefined);
+      await fetchMe();
+    } catch (err) {
+      toast({ title: "Could not remove photo", description: err instanceof ApiClientError ? err.message : "Please try again.", variant: "error" });
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
+
   const watchedName = watch("name");
 
   if (loading) {
@@ -96,14 +140,34 @@ export default function ProfilePage() {
   return (
     <div className="max-w-2xl space-y-6">
       <div className="flex items-center gap-4">
-        <div className="grid size-14 shrink-0 place-items-center rounded-full bg-navy-900 font-display text-lg font-extrabold text-white">
-          {(watchedName || mobile || "RR").trim().slice(0, 2).toUpperCase()}
-        </div>
+        <label
+          className="group relative grid size-20 shrink-0 cursor-pointer place-items-center overflow-hidden rounded-full bg-navy-900 font-display text-xl font-extrabold text-white"
+          title="Change profile photo"
+        >
+          {photo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={photo} alt="Profile" className="size-full object-cover" />
+          ) : (
+            (watchedName || mobile || "RR").trim().slice(0, 2).toUpperCase()
+          )}
+          <span className="absolute inset-x-0 bottom-0 grid h-7 place-items-center bg-navy-950/70">
+            {photoBusy ? <Loader2 className="size-3.5 animate-spin" /> : <Camera className="size-3.5" />}
+          </span>
+          <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" disabled={photoBusy} onChange={handlePhoto} />
+        </label>
         <div>
           <p className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-brand-deep">
             <span className="h-px w-6 bg-current" /> Account
           </p>
           <h1 className="mt-1 font-display text-2xl font-extrabold text-navy-950">Profile</h1>
+          <p className="mt-0.5 text-xs text-navy-400">
+            Tap the photo to {photo ? "change it" : "add one"} · JPG, PNG or WEBP, max 2MB
+            {photo && (
+              <button type="button" onClick={removePhoto} disabled={photoBusy} className="ml-2 inline-flex items-center gap-1 font-semibold text-red-600">
+                <Trash2 className="size-3" /> Remove
+              </button>
+            )}
+          </p>
         </div>
       </div>
 

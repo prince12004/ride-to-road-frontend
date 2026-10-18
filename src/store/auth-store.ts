@@ -9,6 +9,7 @@ export interface AuthUser {
   name?: string;
   mobile: string;
   email?: string;
+  profileImage?: { url: string };
 }
 
 interface AuthState {

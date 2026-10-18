@@ -23,11 +23,16 @@ function initials(name?: string, mobile?: string) {
   return mobile?.slice(-2) ?? "RR";
 }
 
-function UserCard({ name, mobile }: { name?: string; mobile?: string }) {
+function UserCard({ name, mobile, photo }: { name?: string; mobile?: string; photo?: string }) {
   return (
     <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3">
-      <div className="grid size-10 shrink-0 place-items-center rounded-full bg-lime font-display text-sm font-extrabold text-navy-900">
-        {initials(name, mobile)}
+      <div className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-full bg-lime font-display text-sm font-extrabold text-navy-900">
+        {photo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={photo} alt="" className="size-full object-cover" />
+        ) : (
+          initials(name, mobile)
+        )}
       </div>
       <div className="min-w-0">
         <p className="truncate text-sm font-semibold text-white">{name || "Guest"}</p>
@@ -92,7 +97,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="flex justify-center py-1">
             <Logo className="h-8 w-auto" onDark />
           </div>
-          <UserCard name={user.name} mobile={user.mobile} />
+          <UserCard name={user.name} mobile={user.mobile} photo={user.profileImage?.url} />
           <DashboardNavLinks dark />
           <div className="mt-auto border-t border-white/10 pt-3">
             <LogoutButton onLoggedOut={handleLogout} />
@@ -114,7 +119,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <X className="size-5" />
                 </button>
               </div>
-              <UserCard name={user.name} mobile={user.mobile} />
+              <UserCard name={user.name} mobile={user.mobile} photo={user.profileImage?.url} />
               <DashboardNavLinks dark onNavigate={() => setDrawerOpen(false)} />
               <div className="mt-auto border-t border-white/10 pt-3">
                 <LogoutButton onLoggedOut={handleLogout} />
@@ -143,8 +148,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <MessageCircle className="size-4" /> Support
                 </a>
               </Button>
-              <div className="grid size-9 place-items-center rounded-full bg-navy-900 font-display text-xs font-extrabold text-white">
-                {initials(user.name, user.mobile)}
+              <div className="grid size-9 place-items-center overflow-hidden rounded-full bg-navy-900 font-display text-xs font-extrabold text-white">
+                {user.profileImage?.url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={user.profileImage.url} alt="" className="size-full object-cover" />
+                ) : (
+                  initials(user.name, user.mobile)
+                )}
               </div>
             </div>
           </header>

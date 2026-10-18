@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { BadgeCheck, ExternalLink, Loader2, MessageCircle, Save, XCircle } from "lucide-react";
+import { BadgeCheck, ExternalLink, Loader2, MessageCircle, Printer, Save, XCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -12,11 +12,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PageHeader } from "@/components/admin/page-header";
 import { PaymentCollectionCard } from "@/components/admin/payment-collection";
 import { ExtendBookingCard } from "@/components/admin/extend-booking";
+import { CloseBookingCard, ClosureDetails, CustomerDocumentsCard, DeleteBookingButton, EditBookingButton } from "@/components/admin/booking-manage";
+import { useAdminAuthStore } from "@/store/admin-auth-store";
 import { BookingStatusBadge, PaymentStatusBadge } from "@/components/admin/status-badge";
 import { apiFetch, ApiClientError } from "@/lib/api";
 import { toast } from "@/store/toast-store";
-import { formatINR } from "@/lib/utils";
-import { PAYMENT_METHOD_LABELS, type AdminBookingDetail, type BookingHistoryEntry, type BookingStatus } from "@/types";
+import { formatDateTimeIST, formatINR } from "@/lib/utils";
+import { formatDuration } from "@/lib/pricing";
+import {
+  PAYMENT_METHOD_LABELS,
+  type AdminBookingDetail,
+  type BookingCustomer,
+  type BookingHistoryEntry,
+  type BookingStatus,
+  type BookingSummary,
+} from "@/types";
 
 const EXTENDABLE: BookingStatus[] = ["CONFIRMED", "CAR_ASSIGNED", "ACTIVE"];
 const PAYMENT_METHODS = [
@@ -27,15 +37,17 @@ const PAYMENT_METHODS = [
 
 const STATUSES: BookingStatus[] = ["PAYMENT_PENDING", "PAYMENT_FAILED", "CONFIRMED", "CAR_ASSIGNED", "ACTIVE", "COMPLETED", "CANCELLED"];
 
-function fmtDateTime(date: string) {
-  return new Date(date).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
-}
+const fmtDateTime = formatDateTimeIST;
 
 export default function BookingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [booking, setBooking] = useState<AdminBookingDetail | null>(null);
   const [history, setHistory] = useState<BookingHistoryEntry[]>([]);
+  const [summary, setSummary] = useState<BookingSummary | null>(null);
+  const [customer, setCustomer] = useState<BookingCustomer | null>(null);
+  const role = useAdminAuthStore((s) => s.admin?.role);
+  const canDelete = role === "SUPER_ADMIN" || role === "ADMIN";
   const [loading, setLoading] = useState(true);
 
   const [newStatus, setNewStatus] = useState<string>("");
@@ -54,9 +66,16 @@ export default function BookingDetailPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await apiFetch<{ booking: AdminBookingDetail; history: BookingHistoryEntry[] }>(`/admin/bookings/${id}`);
+      const res = await apiFetch<{
+        booking: AdminBookingDetail;
+        history: BookingHistoryEntry[];
+        summary: BookingSummary;
+        customer: BookingCustomer | null;
+      }>(`/admin/bookings/${id}`);
       setBooking(res.data.booking);
       setHistory(res.data.history);
+      setSummary(res.data.summary);
+      setCustomer(res.data.customer);
       setNewStatus(res.data.booking.status);
       setNotes(res.data.booking.adminNotes ?? "");
     } catch (err) {
@@ -180,6 +199,13 @@ export default function BookingDetailPage() {
         description={`Created ${fmtDateTime(booking.createdAt)} · Source: ${booking.source === "ADMIN_OFFLINE" ? "Offline (Admin)" : "Online"}`}
         action={
           <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline">
+              <Link href={`/admin/bookings/${booking._id}/print`} target="_blank">
+                <Printer className="size-4" /> Print / PDF
+              </Link>
+            </Button>
+            {booking.status !== "COMPLETED" && booking.status !== "CANCELLED" && <EditBookingButton booking={booking} onSaved={load} />}
+            {canDelete && <DeleteBookingButton booking={booking} />}
             <Button asChild variant="whatsapp">
               <a href={whatsappHref} target="_blank" rel="noopener noreferrer">
                 <MessageCircle className="size-4" /> WhatsApp Customer
@@ -238,16 +264,27 @@ export default function BookingDetailPage() {
               </div>
               <div>
                 <dt className="text-navy-400">Pickup</dt>
-                <dd className="font-semibold text-navy-900">
-                  {new Date(booking.pickupDate).toLocaleDateString("en-IN")} · {booking.pickupTime}
-                </dd>
+                <dd className="font-semibold text-navy-900">{fmtDateTime(booking.pickupDate)}</dd>
               </div>
               <div>
-                <dt className="text-navy-400">Drop</dt>
-                <dd className="font-semibold text-navy-900">
-                  {new Date(booking.dropDate).toLocaleDateString("en-IN")} · {booking.dropTime}
-                </dd>
+                <dt className="text-navy-400">Return</dt>
+                <dd className="font-semibold text-navy-900">{fmtDateTime(booking.dropDate)}</dd>
               </div>
+              <div>
+                <dt className="text-navy-400">Duration</dt>
+                <dd className="font-semibold text-navy-900">{formatDuration(booking.durationHours)}</dd>
+              </div>
+              {summary && (
+                <div>
+                  <dt className="text-navy-400">KM Allowance</dt>
+                  <dd className="font-semibold text-navy-900">
+                    {summary.includedKm.toLocaleString("en-IN")} km
+                    <span className="block text-xs font-normal text-navy-400">
+                      {summary.kmPerDay} km / 24 hrs · extra {formatINR(summary.extraKmRate)}/km
+                    </span>
+                  </dd>
+                </div>
+              )}
               <div className="col-span-2">
                 <dt className="text-navy-400">Pickup / Delivery</dt>
                 {booking.homeDelivery?.requested ? (
@@ -279,8 +316,16 @@ export default function BookingDetailPage() {
                 <dt className="text-navy-500">Base Amount</dt>
                 <dd className="font-medium text-navy-900">{formatINR(booking.baseAmount)}</dd>
               </div>
+              {summary?.dailyRate != null && (
+                <div className="flex justify-between">
+                  <dt className="text-navy-500">Rate</dt>
+                  <dd className="font-medium text-navy-900">
+                    {formatINR(summary.dailyRate)}/day{summary.hourlyRate ? ` · ${formatINR(summary.hourlyRate)}/hr` : ""}
+                  </dd>
+                </div>
+              )}
               <div className="flex justify-between">
-                <dt className="text-navy-500">Additional Charges</dt>
+                <dt className="text-navy-500">Additional Charges{booking.closure ? " (incl. extra km / closure)" : ""}</dt>
                 <dd className="font-medium text-navy-900">{formatINR(booking.additionalCharges)}</dd>
               </div>
               {!!booking.extensionCharges && (
@@ -419,6 +464,8 @@ export default function BookingDetailPage() {
 
           <PaymentCollectionCard booking={booking} onRecorded={load} />
 
+          <CustomerDocumentsCard customer={customer} />
+
           <Card className="p-6">
             <h2 className="font-display text-lg font-bold text-navy-900">Admin Notes</h2>
             <Textarea className="mt-3" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Internal notes about this booking..." />
@@ -473,6 +520,12 @@ export default function BookingDetailPage() {
 
           {EXTENDABLE.includes(booking.status) && <ExtendBookingCard key={booking.dropDate} booking={booking} onExtended={load} />}
 
+          {EXTENDABLE.includes(booking.status) && summary && (
+            <CloseBookingCard key={`close-${booking.totalAmount}`} booking={booking} summary={summary} onClosed={load} />
+          )}
+
+          {booking.closure && <ClosureDetails closure={booking.closure} />}
+
           {!!booking.extensions?.length && (
             <Card className="p-6">
               <h2 className="font-display text-lg font-bold text-navy-900">Extensions</h2>
@@ -494,7 +547,7 @@ export default function BookingDetailPage() {
                       </span>
                     </div>
                     <p className="mt-2 text-navy-600">
-                      {fmtDateTime(ext.previousDropAt)} → {fmtDateTime(ext.newDropAt)} ({ext.extraHours} hrs)
+                      {fmtDateTime(ext.previousDropAt)} → {fmtDateTime(ext.newDropAt)} (+{formatDuration(ext.extraHours)})
                     </p>
                     {ext.note && <p className="mt-1 text-navy-500">{ext.note}</p>}
                     <p className="mt-1 text-xs text-navy-400">Added {fmtDateTime(ext.createdAt)}</p>
