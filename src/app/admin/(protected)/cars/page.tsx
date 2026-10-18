@@ -212,7 +212,14 @@ function AdminCarsContent() {
                   </td>
                   <td className="p-4 capitalize text-navy-700">{car.category}</td>
                   <td className="p-4 text-navy-700">
-                    {typeof car.location === "object" ? car.location.city : "—"}
+                    {car.location && typeof car.location === "object" ? car.location.city : "—"}
+                    {car.allCities ? (
+                      <span className="block text-xs font-semibold text-brand-deep">All cities</span>
+                    ) : car.cities?.length ? (
+                      <span className="block text-xs text-navy-400">
+                        + {car.cities.map((c) => (typeof c === "object" ? c.city : "")).filter(Boolean).join(", ")}
+                      </span>
+                    ) : null}
                   </td>
                   <td className="p-4 font-medium text-navy-900">{formatINR(car.pricePerDay)}</td>
                   <td className="p-4">

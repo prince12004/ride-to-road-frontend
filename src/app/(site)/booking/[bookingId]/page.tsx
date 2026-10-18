@@ -10,7 +10,7 @@ import { PaymentPanel } from "@/components/booking/payment-panel";
 import { DeliveryAddress } from "@/components/booking/delivery-address";
 import { formatINR } from "@/lib/utils";
 import { whatsappLink } from "@/lib/whatsapp";
-import { PAYMENT_METHOD_LABELS, type Booking, type BookingStatusHistoryEntry, type Location } from "@/types";
+import { PAYMENT_METHOD_LABELS, PAYMENT_STATUS_LABELS, type Booking, type BookingStatusHistoryEntry, type Location } from "@/types";
 
 interface BookingCarSummary {
   name: string;
@@ -184,9 +184,15 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
               </div>
               <p className="mt-2 text-xs text-navy-400">
                 Payment: <span className="font-semibold text-navy-700">
-                  {booking.payment.method ? PAYMENT_METHOD_LABELS[booking.payment.method] : "—"} · {booking.payment.status === "PAID" ? "Paid" : booking.payment.status === "FAILED" ? "Not verified" : "Pending"}
+                  {booking.payment.method ? PAYMENT_METHOD_LABELS[booking.payment.method] : "—"} · {PAYMENT_STATUS_LABELS[booking.payment.status] ?? booking.payment.status}
                 </span>
               </p>
+              {booking.payment.status === "PARTIALLY_PAID" && typeof booking.payment.amountReceived === "number" && (
+                <p className="mt-1 text-xs text-navy-500">
+                  Received {formatINR(booking.payment.amountReceived)} · Balance due{" "}
+                  <span className="font-semibold text-navy-900">{formatINR(Math.max(0, booking.totalAmount - booking.payment.amountReceived))}</span>
+                </p>
+              )}
             </div>
             </div>
           </Card>

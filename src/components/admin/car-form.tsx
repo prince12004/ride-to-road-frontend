@@ -35,6 +35,8 @@ export interface CarFormValues {
   features: string[];
   specifications: CarSpecification[];
   location: string;
+  allCities: boolean;
+  cities: string[];
   mainImage: ImageRef | null;
   gallery: ImageRef[];
   status: string;
@@ -64,6 +66,8 @@ const emptyValues: CarFormValues = {
   features: [],
   specifications: [],
   location: "",
+  allCities: false,
+  cities: [],
   mainImage: null,
   gallery: [],
   status: "AVAILABLE",
@@ -94,6 +98,8 @@ export function carDocToFormValues(car: AdminCarDoc): CarFormValues {
     features: car.features ?? [],
     specifications: car.specifications ?? [],
     location: typeof car.location === "object" ? car.location._id : car.location,
+    allCities: Boolean(car.allCities),
+    cities: (car.cities ?? []).map((c) => (typeof c === "object" ? c._id : c)),
     mainImage: car.mainImage ?? null,
     gallery: car.gallery ?? [],
     status: car.status,
@@ -102,6 +108,12 @@ export function carDocToFormValues(car: AdminCarDoc): CarFormValues {
     metaDescription: car.seo?.metaDescription ?? "",
     ogImage: car.seo?.ogImage ?? null,
   };
+}
+
+/** Daily price derived from the hourly price, or null when no hourly price is set. */
+function autoDailyPrice(v: Pick<CarFormValues, "pricePerHour">): number | null {
+  const hourly = Number(v.pricePerHour);
+  return hourly > 0 ? Math.round(hourly * 24) : null;
 }
 
 function buildPayload(v: CarFormValues) {
@@ -114,10 +126,13 @@ function buildPayload(v: CarFormValues) {
     fuel: v.fuel,
     seats: Number(v.seats),
     tag: v.tag || undefined,
-    pricePerDay: Number(v.pricePerDay),
-    pricePerHour: v.pricePerHour ? Number(v.pricePerHour) : undefined,
-    weeklyPrice: v.weeklyPrice ? Number(v.weeklyPrice) : undefined,
-    monthlyPrice: v.monthlyPrice ? Number(v.monthlyPrice) : undefined,
+    // With an hourly price the daily price is always hourly × 24 (the API
+    // enforces this too). Cleared optional prices are sent as null so the
+    // API removes them instead of keeping the old value.
+    pricePerDay: autoDailyPrice(v) ?? Number(v.pricePerDay),
+    pricePerHour: v.pricePerHour ? Number(v.pricePerHour) : null,
+    weeklyPrice: v.weeklyPrice ? Number(v.weeklyPrice) : null,
+    monthlyPrice: v.monthlyPrice ? Number(v.monthlyPrice) : null,
     securityDeposit: v.securityDeposit ? Number(v.securityDeposit) : undefined,
     homeDelivery: {
       available: v.homeDeliveryAvailable,
@@ -127,6 +142,8 @@ function buildPayload(v: CarFormValues) {
     features: v.features,
     specifications: v.specifications,
     location: v.location,
+    allCities: v.allCities,
+    cities: v.allCities ? [] : v.cities.filter((c) => c !== v.location),
     mainImage: v.mainImage,
     gallery: v.gallery,
     status: v.status,
@@ -173,6 +190,10 @@ export function CarForm({ initial, carId }: { initial?: AdminCarDoc; carId?: str
     }
     if (!values.location) {
       toast({ title: "Location required", description: "Select a pickup location for this car.", variant: "error" });
+      return;
+    }
+    if (!autoDailyPrice(values) && !(Number(values.pricePerDay) > 0)) {
+      toast({ title: "Price required", description: "Enter the hourly price (the daily price is calculated from it).", variant: "error" });
       return;
     }
     if (!values.mainImage) {
@@ -289,29 +310,110 @@ export function CarForm({ initial, carId }: { initial?: AdminCarDoc; carId?: str
             {locations.length === 0 && <p className="mt-1 text-xs text-amber-600">No locations yet — add one under Locations first.</p>}
           </div>
         </div>
+
+        <div className="mt-6 border-t border-navy-100 pt-5">
+          <Label>Available In</Label>
+          <div role="radiogroup" className="mt-2 flex flex-wrap gap-2">
+            {[
+              { value: false, label: "Specific cities" },
+              { value: true, label: "All cities" },
+            ].map((opt) => (
+              <button
+                key={opt.label}
+                type="button"
+                role="radio"
+                aria-checked={values.allCities === opt.value}
+                onClick={() => set("allCities", opt.value)}
+                className={
+                  "rounded-full border px-4 py-2 text-sm font-semibold transition-colors " +
+                  (values.allCities === opt.value ? "border-navy-900 bg-navy-900 text-white" : "border-navy-200 text-navy-700 hover:border-navy-900")
+                }
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          {values.allCities ? (
+            <p className="mt-2 text-xs text-navy-500">Customers searching any city will see this car.</p>
+          ) : (
+            <>
+              <p className="mt-2 text-xs text-navy-500">The pickup location is always included. Tick any other cities where customers can book this car.</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {locations.map((l) => {
+                  const isBase = l._id === values.location;
+                  const checked = isBase || values.cities.includes(l._id);
+                  return (
+                    <label
+                      key={l._id}
+                      className={
+                        "flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-sm " +
+                        (checked ? "border-brand-deep bg-lime/10 text-navy-900" : "border-navy-200 text-navy-600") +
+                        (isBase ? " cursor-default opacity-90" : "")
+                      }
+                    >
+                      <input
+                        type="checkbox"
+                        className="size-4 accent-[#1f7a36]"
+                        checked={checked}
+                        disabled={isBase}
+                        onChange={(e) =>
+                          set("cities", e.target.checked ? [...values.cities, l._id] : values.cities.filter((c) => c !== l._id))
+                        }
+                      />
+                      {l.city}
+                      {isBase && <span className="text-xs text-navy-400">(pickup)</span>}
+                      {!l.isActive && <span className="text-xs text-amber-600">(inactive)</span>}
+                    </label>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
       </Card>
 
       <Card className="p-6">
         <h2 className="font-display text-lg font-bold text-navy-900">Pricing</h2>
         <p className="mt-1 text-sm text-navy-500">
-          Set an hourly rate to bill customers by the hour (recommended). Otherwise the daily rate is used, rounded up to whole days.
+          Enter the hourly price — the daily price is calculated automatically (hourly × 24). Bookings are at least 24 hours.
+          Weekly and monthly prices are optional; when set they apply to 7+ and 30+ day bookings.
         </p>
         <div className="mt-5 grid gap-4 sm:grid-cols-4">
           <div>
             <Label>Price / Hour (₹)</Label>
-            <Input className="mt-1.5" type="number" value={values.pricePerHour} onChange={(e) => set("pricePerHour", e.target.value)} placeholder="e.g. 113" />
+            <Input
+              className="mt-1.5"
+              type="number"
+              min={0}
+              step="0.01"
+              value={values.pricePerHour}
+              onChange={(e) => set("pricePerHour", e.target.value)}
+              placeholder="e.g. 100"
+            />
           </div>
           <div>
             <Label>Price / Day (₹)</Label>
-            <Input className="mt-1.5" type="number" value={values.pricePerDay} onChange={(e) => set("pricePerDay", Number(e.target.value))} />
+            {autoDailyPrice(values) ? (
+              <>
+                <Input className="mt-1.5 bg-navy-50 font-semibold" type="number" value={autoDailyPrice(values)!} readOnly aria-readonly />
+                <p className="mt-1 text-xs text-navy-400">
+                  Auto: ₹{values.pricePerHour} × 24
+                </p>
+              </>
+            ) : (
+              <>
+                <Input className="mt-1.5" type="number" min={0} value={values.pricePerDay} onChange={(e) => set("pricePerDay", Number(e.target.value))} />
+                <p className="mt-1 text-xs text-navy-400">Calculated automatically once an hourly price is entered.</p>
+              </>
+            )}
           </div>
           <div>
-            <Label>Weekly Price (₹)</Label>
-            <Input className="mt-1.5" type="number" value={values.weeklyPrice} onChange={(e) => set("weeklyPrice", e.target.value)} />
+            <Label>Weekly Price (₹) · optional</Label>
+            <Input className="mt-1.5" type="number" min={0} value={values.weeklyPrice} onChange={(e) => set("weeklyPrice", e.target.value)} placeholder="Leave blank" />
           </div>
           <div>
-            <Label>Monthly Price (₹)</Label>
-            <Input className="mt-1.5" type="number" value={values.monthlyPrice} onChange={(e) => set("monthlyPrice", e.target.value)} />
+            <Label>Monthly Price (₹) · optional</Label>
+            <Input className="mt-1.5" type="number" min={0} value={values.monthlyPrice} onChange={(e) => set("monthlyPrice", e.target.value)} placeholder="Leave blank" />
           </div>
           <div>
             <Label>Security Deposit (₹)</Label>

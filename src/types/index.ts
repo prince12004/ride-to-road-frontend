@@ -39,6 +39,8 @@ export interface Location {
   city: string;
   region: string;
   image: string;
+  /** Searching this city lists the whole fleet. */
+  showAllCars?: boolean;
 }
 
 export interface Journey {
@@ -106,6 +108,10 @@ export interface CarDetail extends Car {
   specifications: { label: string; value: string }[];
   gallery: string[];
   location: Location | string;
+  /** Offered in every city. */
+  allCities?: boolean;
+  /** Extra city (location) ids the car is offered in, besides `location`. */
+  cities?: string[];
   status: "AVAILABLE" | "BOOKED" | "MAINTENANCE" | "INACTIVE";
   isFeatured: boolean;
 }
@@ -119,7 +125,27 @@ export type BookingStatus =
   | "COMPLETED"
   | "CANCELLED";
 
-export type PaymentStatus = "PENDING" | "PAID" | "FAILED" | "REFUNDED" | "NOT_APPLICABLE";
+export type PaymentStatus = "PENDING" | "PARTIALLY_PAID" | "PAID" | "FAILED" | "REFUNDED" | "NOT_APPLICABLE";
+
+/** Customer-facing wording for payment statuses. */
+export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
+  PENDING: "Pending",
+  PARTIALLY_PAID: "Partially Paid",
+  PAID: "Fully Paid",
+  FAILED: "Not verified",
+  REFUNDED: "Refunded",
+  NOT_APPLICABLE: "—",
+};
+
+export interface PaymentCollection {
+  _id: string;
+  mode: "CASH" | "ONLINE";
+  amount: number;
+  reference?: string;
+  receivedAt: string;
+  note?: string;
+  createdAt: string;
+}
 export type PaymentMethod = "RAZORPAY" | "COD" | "UPI_QR" | "OFFLINE_CASH" | "OFFLINE_UPI" | "OFFLINE_OTHER";
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
@@ -167,6 +193,8 @@ export interface Booking {
     failureReason?: string;
     /** UPI QR screenshot. `url` is only sent to the owner and admins. */
     proof?: { url?: string; uploadedAt: string };
+    amountReceived?: number;
+    collections?: PaymentCollection[];
     reviewNote?: string;
     reviewedAt?: string;
   };
@@ -361,6 +389,8 @@ export interface AdminCarDoc {
   features: string[];
   specifications: CarSpecification[];
   location: AdminLocationDoc | string;
+  allCities?: boolean;
+  cities?: (AdminLocationDoc | string)[];
   mainImage: ImageRef;
   gallery: ImageRef[];
   documents?: CarDocuments;

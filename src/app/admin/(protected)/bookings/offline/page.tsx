@@ -45,6 +45,10 @@ export default function OfflineBookingPage() {
       toast({ title: "Missing fields", description: "Fill in all required fields.", variant: "error" });
       return;
     }
+    if (new Date(`${dropDate}T${dropTime}`).getTime() - new Date(`${pickupDate}T${pickupTime}`).getTime() < 24 * 60 * 60 * 1000) {
+      toast({ title: "Minimum booking is 24 hours", description: "Choose a later drop date or time.", variant: "error" });
+      return;
+    }
     setSubmitting(true);
     try {
       await apiFetch("/admin/bookings/offline", {

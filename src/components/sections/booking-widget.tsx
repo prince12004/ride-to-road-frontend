@@ -7,6 +7,7 @@ import { ArrowRight, CalendarDays, Clock, MapPin } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CalendarPopoverField, TimePopoverField } from "@/components/booking/date-time-popover";
 import { labelForTime } from "@/lib/time-slots";
+import { MIN_RENTAL_HOURS } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
 
 type FieldKey = "city" | "pickupDate" | "pickupTime" | "returnDate" | "returnTime";
@@ -78,6 +79,13 @@ export function BookingWidget({ cities, initial }: { cities: string[]; initial?:
 
   const handlePickupTime = (v: string) => {
     setPickupTime(v);
+    // Keep at least 24 hours between pickup and return.
+    const pickup = new Date(`${format(pickupDate, "yyyy-MM-dd")}T${v}`);
+    const drop = new Date(`${format(returnDate, "yyyy-MM-dd")}T${returnTime}`);
+    if (drop.getTime() - pickup.getTime() < MIN_RENTAL_HOURS * 60 * 60 * 1000) {
+      setReturnDate(addDays(pickupDate, 1));
+      setReturnTime(v);
+    }
     setOpenField("returnDate");
   };
 
@@ -97,6 +105,9 @@ export function BookingWidget({ cities, initial }: { cities: string[]; initial?:
     const pickup = new Date(`${format(pickupDate, "yyyy-MM-dd")}T${pickupTime}`);
     const drop = new Date(`${format(returnDate, "yyyy-MM-dd")}T${returnTime}`);
     if (!isBefore(pickup, drop)) return setError("Return time must be after pickup.");
+    if (drop.getTime() - pickup.getTime() < MIN_RENTAL_HOURS * 60 * 60 * 1000) {
+      return setError(`Minimum booking is ${MIN_RENTAL_HOURS} hours — choose a later return.`);
+    }
     setError("");
 
     const params = new URLSearchParams({
@@ -168,7 +179,7 @@ export function BookingWidget({ cities, initial }: { cities: string[]; initial?:
           <CalendarPopoverField
             value={returnDate}
             onChange={handleReturnDate}
-            fromDate={pickupDate}
+            fromDate={addDays(pickupDate, 1)}
             open={isOpen("returnDate")}
             onOpenChange={setOpen("returnDate")}
             trigger={<span className={triggerText}>{format(returnDate, "EEE, d MMM")}</span>}

@@ -3,14 +3,15 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { BadgeCheck, CalendarPlus, ExternalLink, Loader2, MessageCircle, Save, XCircle } from "lucide-react";
+import { BadgeCheck, ExternalLink, Loader2, MessageCircle, Save, XCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader } from "@/components/admin/page-header";
+import { PaymentCollectionCard } from "@/components/admin/payment-collection";
+import { ExtendBookingCard } from "@/components/admin/extend-booking";
 import { BookingStatusBadge, PaymentStatusBadge } from "@/components/admin/status-badge";
 import { apiFetch, ApiClientError } from "@/lib/api";
 import { toast } from "@/store/toast-store";
@@ -23,13 +24,6 @@ const PAYMENT_METHODS = [
   { value: "OFFLINE_UPI", label: "UPI" },
   { value: "OFFLINE_OTHER", label: "Other" },
 ];
-
-function toDateInput(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-function toTimeInput(d: Date) {
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-}
 
 const STATUSES: BookingStatus[] = ["PAYMENT_PENDING", "PAYMENT_FAILED", "CONFIRMED", "CAR_ASSIGNED", "ACTIVE", "COMPLETED", "CANCELLED"];
 
@@ -52,13 +46,6 @@ export default function BookingDetailPage() {
   const [savingNotes, setSavingNotes] = useState(false);
   const [cancelling, setCancelling] = useState(false);
 
-  const [extDate, setExtDate] = useState("");
-  const [extTime, setExtTime] = useState("");
-  const [extAmount, setExtAmount] = useState("");
-  const [extPaymentStatus, setExtPaymentStatus] = useState<"PENDING" | "PAID">("PENDING");
-  const [extPaymentMethod, setExtPaymentMethod] = useState("OFFLINE_UPI");
-  const [extNote, setExtNote] = useState("");
-  const [extending, setExtending] = useState(false);
 
   const [reviewingPayment, setReviewingPayment] = useState<"verify" | "reject" | null>(null);
   const [showReject, setShowReject] = useState(false);
@@ -72,9 +59,6 @@ export default function BookingDetailPage() {
       setHistory(res.data.history);
       setNewStatus(res.data.booking.status);
       setNotes(res.data.booking.adminNotes ?? "");
-      const drop = new Date(res.data.booking.dropDate);
-      setExtDate(toDateInput(drop));
-      setExtTime(toTimeInput(drop));
     } catch (err) {
       toast({ title: "Could not load booking", description: err instanceof ApiClientError ? err.message : "Try again.", variant: "error" });
     } finally {
@@ -118,45 +102,6 @@ export default function BookingDetailPage() {
       toast({ title: "Could not save notes", description: err instanceof ApiClientError ? err.message : "Try again.", variant: "error" });
     } finally {
       setSavingNotes(false);
-    }
-  };
-
-  const handleExtend = async () => {
-    if (!booking) return;
-    if (!extDate || !extTime) {
-      toast({ title: "Choose the new drop date and time", variant: "error" });
-      return;
-    }
-    if (new Date(`${extDate}T${extTime}`) <= new Date(booking.dropDate)) {
-      toast({ title: "New drop time must be after the current drop time", variant: "error" });
-      return;
-    }
-    const amount = extAmount.trim() === "" ? undefined : Number(extAmount);
-    if (amount !== undefined && (Number.isNaN(amount) || amount < 0)) {
-      toast({ title: "Enter a valid extension amount", variant: "error" });
-      return;
-    }
-    setExtending(true);
-    try {
-      await apiFetch(`/admin/bookings/${booking._id}/extend`, {
-        method: "POST",
-        body: JSON.stringify({
-          dropDate: extDate,
-          dropTime: extTime,
-          amount,
-          paymentStatus: extPaymentStatus,
-          paymentMethod: extPaymentStatus === "PAID" ? extPaymentMethod : undefined,
-          note: extNote || undefined,
-        }),
-      });
-      toast({ title: "Booking extended", variant: "success" });
-      setExtAmount("");
-      setExtNote("");
-      load();
-    } catch (err) {
-      toast({ title: "Could not extend booking", description: err instanceof ApiClientError ? err.message : "Try again.", variant: "error" });
-    } finally {
-      setExtending(false);
     }
   };
 
@@ -426,8 +371,9 @@ export default function BookingDetailPage() {
               </div>
             )}
 
-            {(booking.payment.method === "UPI_QR" || booking.payment.method === "COD") &&
+            {booking.payment.method === "UPI_QR" &&
               booking.payment.status !== "PAID" &&
+              booking.payment.status !== "PARTIALLY_PAID" &&
               booking.status !== "CANCELLED" && (
                 <div className="mt-5 space-y-3 border-t border-navy-100 pt-5">
                   {showReject && (
@@ -446,7 +392,7 @@ export default function BookingDetailPage() {
                         disabled={reviewingPayment !== null || (booking.payment.method === "UPI_QR" && !booking.payment.proof?.url)}
                       >
                         {reviewingPayment === "verify" ? <Loader2 className="size-4 animate-spin" /> : <BadgeCheck className="size-4" />}
-                        {booking.payment.method === "COD" ? "Mark Cash Received" : "Verify Payment"}
+                        Verify Payment
                       </Button>
                     )}
                     {booking.payment.method === "UPI_QR" && booking.payment.proof?.url && (
@@ -470,6 +416,8 @@ export default function BookingDetailPage() {
                 </div>
               )}
           </Card>
+
+          <PaymentCollectionCard booking={booking} onRecorded={load} />
 
           <Card className="p-6">
             <h2 className="font-display text-lg font-bold text-navy-900">Admin Notes</h2>
@@ -523,73 +471,7 @@ export default function BookingDetailPage() {
             )}
           </Card>
 
-          {EXTENDABLE.includes(booking.status) && (
-            <Card className="p-6">
-              <h2 className="flex items-center gap-2 font-display text-lg font-bold text-navy-900">
-                <CalendarPlus className="size-5 text-brand-deep" /> Extend Booking
-              </h2>
-              <p className="mt-1 text-sm text-navy-500">
-                Current drop: {fmtDateTime(booking.dropDate)}
-              </p>
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <div>
-                  <Label>New Drop Date</Label>
-                  <Input type="date" className="mt-1.5" value={extDate} min={toDateInput(new Date(booking.dropDate))} onChange={(e) => setExtDate(e.target.value)} />
-                </div>
-                <div>
-                  <Label>New Drop Time</Label>
-                  <Input type="time" className="mt-1.5" value={extTime} onChange={(e) => setExtTime(e.target.value)} />
-                </div>
-              </div>
-              <div className="mt-3">
-                <Label>Extension Amount (₹)</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  className="mt-1.5"
-                  value={extAmount}
-                  onChange={(e) => setExtAmount(e.target.value)}
-                  placeholder="Leave blank to calculate from car rates"
-                />
-              </div>
-              <div className="mt-3 grid grid-cols-2 gap-3">
-                <div>
-                  <Label>Payment</Label>
-                  <Select value={extPaymentStatus} onValueChange={(v) => setExtPaymentStatus(v as "PENDING" | "PAID")}>
-                    <SelectTrigger className="mt-1.5 h-12 rounded-2xl border border-navy-200 px-4">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="PENDING">Pending</SelectItem>
-                      <SelectItem value="PAID">Collected</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                {extPaymentStatus === "PAID" && (
-                  <div>
-                    <Label>Method</Label>
-                    <Select value={extPaymentMethod} onValueChange={setExtPaymentMethod}>
-                      <SelectTrigger className="mt-1.5 h-12 rounded-2xl border border-navy-200 px-4">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PAYMENT_METHODS.map((m) => (
-                          <SelectItem key={m.value} value={m.value}>
-                            {m.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-              </div>
-              <Textarea className="mt-3" placeholder="Note (optional)" value={extNote} onChange={(e) => setExtNote(e.target.value)} />
-              <Button type="button" className="mt-3 w-full" onClick={handleExtend} disabled={extending}>
-                {extending ? <Loader2 className="size-4 animate-spin" /> : <CalendarPlus className="size-4" />}
-                Extend Booking
-              </Button>
-            </Card>
-          )}
+          {EXTENDABLE.includes(booking.status) && <ExtendBookingCard key={booking.dropDate} booking={booking} onExtended={load} />}
 
           {!!booking.extensions?.length && (
             <Card className="p-6">
@@ -608,7 +490,7 @@ export default function BookingDetailPage() {
                       >
                         {ext.paymentStatus === "PAID"
                           ? `Collected${ext.paymentMethod ? ` · ${PAYMENT_METHODS.find((m) => m.value === ext.paymentMethod)?.label ?? ext.paymentMethod}` : ""}`
-                          : "Payment pending"}
+                          : "Added to balance"}
                       </span>
                     </div>
                     <p className="mt-2 text-navy-600">

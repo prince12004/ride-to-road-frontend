@@ -187,7 +187,7 @@ function BookingTab({
   onSave: (p: Partial<CmsSettings>) => void;
   saving: boolean;
 }) {
-  const [minRentalHours, setMinRentalHours] = useState(String(settings.booking?.minRentalHours ?? 4));
+  const [minRentalHours, setMinRentalHours] = useState(String(Math.max(24, settings.booking?.minRentalHours ?? 24)));
   const [maxRentalDays, setMaxRentalDays] = useState(String(settings.booking?.maxRentalDays ?? 30));
   const [taxPercent, setTaxPercent] = useState(String(settings.booking?.taxPercent ?? 0));
   const [cancellationRulesText, setCancellationRulesText] = useState(settings.booking?.cancellationRulesText ?? "");
@@ -197,7 +197,8 @@ function BookingTab({
       <div className="grid gap-4 sm:grid-cols-3">
         <div>
           <Label>Min Rental Hours</Label>
-          <Input className="mt-1.5" type="number" value={minRentalHours} onChange={(e) => setMinRentalHours(e.target.value)} />
+          <Input className="mt-1.5" type="number" min={24} value={minRentalHours} onChange={(e) => setMinRentalHours(e.target.value)} />
+          <p className="mt-1 text-xs text-navy-400">At least 24 — self-drive bookings are never shorter than a day.</p>
         </div>
         <div>
           <Label>Max Rental Days</Label>

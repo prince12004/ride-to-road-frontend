@@ -17,6 +17,7 @@ export function BookingStatusBadge({ status }: { status: BookingStatus }) {
 
 const paymentStatusVariant: Record<PaymentStatus, "navy" | "lime" | "outline" | "warning" | "success" | "destructive"> = {
   PENDING: "warning",
+  PARTIALLY_PAID: "lime",
   PAID: "success",
   FAILED: "destructive",
   REFUNDED: "outline",
@@ -24,7 +25,7 @@ const paymentStatusVariant: Record<PaymentStatus, "navy" | "lime" | "outline" | 
 };
 
 export function PaymentStatusBadge({ status }: { status: PaymentStatus }) {
-  return <Badge variant={paymentStatusVariant[status] ?? "outline"}>{status.replace(/_/g, " ")}</Badge>;
+  return <Badge variant={paymentStatusVariant[status] ?? "outline"}>{status === "PAID" ? "FULLY PAID" : status.replace(/_/g, " ")}</Badge>;
 }
 
 const verificationVariant: Record<VerificationStatus, "navy" | "lime" | "outline" | "warning" | "success" | "destructive"> = {

@@ -38,6 +38,7 @@ import { toast } from "@/store/toast-store";
 import { useAuthStore } from "@/store/auth-store";
 import { cn, formatINR, todayInIndia } from "@/lib/utils";
 import { labelForTime } from "@/lib/time-slots";
+import { calculateBaseAmount, effectiveDailyRate, MIN_RENTAL_HOURS } from "@/lib/pricing";
 import { BOOKING_KYC_SLOTS, KycDocumentGrid, slotState, useKycProfile } from "@/components/kyc/kyc-documents";
 import type { CarDetail, Location, Booking } from "@/types";
 
@@ -58,6 +59,16 @@ const schema = z.object({
   homeDelivery: z.boolean(),
   deliveryAddress: z.string().max(500, "Keep the address under 500 characters").optional(),
 }).superRefine((v, ctx) => {
+  // Self-drive bookings are at least a full day (the API enforces this too).
+  const pickup = new Date(`${v.pickupDate}T${v.pickupTime}`);
+  const drop = new Date(`${v.dropDate}T${v.dropTime}`);
+  if (drop.getTime() - pickup.getTime() < MIN_RENTAL_HOURS * 60 * 60 * 1000) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["dropDate"],
+      message: `Minimum booking is ${MIN_RENTAL_HOURS} hours — choose a later return date or time`,
+    });
+  }
   // Mirrors the API rule: delivery needs a complete address.
   if (v.homeDelivery && (v.deliveryAddress ?? "").trim().length < 10) {
     ctx.addIssue({
@@ -150,10 +161,14 @@ export function BookingForm({
   // locations list uses `id` — accept either so the car's own location is
   // preselected, falling back to the first location.
   const carLocation = typeof car.location === "object" ? (car.location as Location & { _id?: string }) : null;
-  const carLocationId = carLocation?.id ?? carLocation?._id;
+  const carLocationId = carLocation?.id ?? carLocation?._id ?? (typeof car.location === "string" ? car.location : undefined);
+  // Only cities where this car can be booked (same rule as the API).
+  const offeredLocations = locations.filter(
+    (l) => car.allCities || l.showAllCars || l.id === carLocationId || (car.cities ?? []).includes(l.id),
+  );
   const defaultLocationId =
-    initial?.locationId ||
-    (carLocationId && locations.some((l) => l.id === carLocationId) ? carLocationId : locations[0]?.id ?? "");
+    (initial?.locationId && offeredLocations.some((l) => l.id === initial.locationId) ? initial.locationId : undefined) ||
+    (carLocationId && offeredLocations.some((l) => l.id === carLocationId) ? carLocationId : offeredLocations[0]?.id ?? "");
   const deliveryFee = car.homeDelivery?.available ? car.homeDelivery.price : 0;
 
   const {
@@ -270,8 +285,19 @@ export function BookingForm({
     setValue("dropDate", format(addDays(d, 1), "yyyy-MM-dd"), { shouldValidate: true });
     setOpenField("pickupTime");
   };
+  /** Keeps the return at least 24 hours after pickup when pickup moves later. */
+  const ensureMinimumDuration = (pickupDate: string, pickupTime: string) => {
+    const pickup = new Date(`${pickupDate}T${pickupTime}`);
+    const drop = new Date(`${getValues("dropDate")}T${getValues("dropTime")}`);
+    if (drop.getTime() - pickup.getTime() < MIN_RENTAL_HOURS * 60 * 60 * 1000) {
+      const minDrop = new Date(pickup.getTime() + MIN_RENTAL_HOURS * 60 * 60 * 1000);
+      setValue("dropDate", format(minDrop, "yyyy-MM-dd"), { shouldValidate: true });
+      setValue("dropTime", pickupTime, { shouldValidate: true });
+    }
+  };
   const handlePickupTimeChange = (v: string) => {
     setValue("pickupTime", v, { shouldValidate: true });
+    ensureMinimumDuration(getValues("pickupDate"), v);
     setOpenField("dropDate");
   };
   const handleDropDateChange = (d: Date) => {
@@ -323,7 +349,8 @@ export function BookingForm({
       const drop = new Date(`${values.dropDate}T${values.dropTime}`);
       const hours = Math.max(1, Math.ceil((drop.getTime() - pickup.getTime()) / (1000 * 60 * 60)));
       const days = Math.max(1, Math.ceil(hours / 24));
-      const baseAmount = car.pricePerHour ? Math.round(car.pricePerHour * hours) : days * car.pricePerDay;
+      // Same formula the API uses (daily = hourly × 24, weekly/monthly tiers).
+      const baseAmount = calculateBaseAmount(car, hours);
       const delivery = homeDelivery ? deliveryFee : 0;
       const discount = coupon && values.couponCode?.trim().toUpperCase() === coupon.code ? coupon.discountAmount : 0;
       // Mirrors the backend: the refundable deposit is added after discount/tax.
@@ -339,8 +366,7 @@ export function BookingForm({
     values.dropDate,
     values.dropTime,
     values.couponCode,
-    car.pricePerDay,
-    car.pricePerHour,
+    car,
     car.securityDeposit,
     homeDelivery,
     deliveryFee,
@@ -495,7 +521,7 @@ export function BookingForm({
                   <SelectValue placeholder="Select location" />
                 </SelectTrigger>
                 <SelectContent>
-                  {locations.map((l) => (
+                  {offeredLocations.map((l) => (
                     <SelectItem key={l.id} value={l.id}>
                       {l.city}
                     </SelectItem>
@@ -543,7 +569,7 @@ export function BookingForm({
               <CalendarPopoverField
                 value={dropDateObj}
                 onChange={handleDropDateChange}
-                fromDate={pickupDateObj}
+                fromDate={addDays(pickupDateObj, 1)}
                 open={isOpen("dropDate")}
                 onOpenChange={setOpen("dropDate")}
                 trigger={
@@ -553,6 +579,7 @@ export function BookingForm({
                   </span>
                 }
               />
+              {errors.dropDate && <p className="mt-1 text-xs text-red-600">{errors.dropDate.message}</p>}
             </div>
             <div>
               <Label>Return Time</Label>
@@ -707,11 +734,11 @@ export function BookingForm({
               <div className="flex items-center justify-between">
                 <dt className="text-navy-500">
                   Base fare
-                  {car.pricePerHour && (
-                    <span className="block text-xs text-navy-400">
-                      {formatINR(car.pricePerHour)} × {estimate.hours} hrs
-                    </span>
-                  )}
+                  <span className="block text-xs text-navy-400">
+                    {(car.weeklyPrice && estimate.hours >= 7 * 24) || (car.monthlyPrice && estimate.hours >= 30 * 24)
+                      ? "Weekly / monthly rate applied"
+                      : `${formatINR(effectiveDailyRate(car))}/day${car.pricePerHour ? ` · ${formatINR(car.pricePerHour)}/hr after the first day` : ""}`}
+                  </span>
                 </dt>
                 <dd className="font-semibold text-navy-900">{formatINR(estimate.baseAmount)}</dd>
               </div>
