@@ -43,7 +43,7 @@ export function BookingsTable({ bookings, highlightMobile = false }: { bookings:
                   {b.mobile}
                 </p>
               </td>
-              <td className="p-4 text-navy-700">{b.car && typeof b.car === "object" ? b.car.name : "—"}</td>
+              <td className="p-4 text-navy-700">{b.car && typeof b.car === "object" ? b.car.name : <span className="text-navy-400">Car removed</span>}</td>
               <td className="p-4 text-navy-700">
                 {fmtDate(b.pickupDate)} · {b.pickupTime}
               </td>

@@ -209,7 +209,7 @@ export default function AdminDashboardPage() {
                     </td>
                     <td className="py-2.5 pr-4 text-navy-700">{b.customerName}</td>
                     <td className="py-2.5 pr-4 text-navy-700">
-                      {typeof b.car === "object" ? b.car.name : "—"}
+                      {b.car && typeof b.car === "object" ? b.car.name : <span className="text-navy-400">Car removed</span>}
                     </td>
                     <td className="py-2.5 pr-4 text-navy-700">{formatINR(b.totalAmount)}</td>
                     <td className="py-2.5 pr-4">

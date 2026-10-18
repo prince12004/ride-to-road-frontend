@@ -146,7 +146,7 @@ export default function CustomerDetailPage() {
                   {bookings.map((b) => (
                     <tr key={b._id} className="border-t border-navy-50">
                       <td className="py-2.5 pr-4 font-medium text-navy-900">{b.bookingId}</td>
-                      <td className="py-2.5 pr-4 text-navy-700">{typeof b.car === "object" ? b.car.name : "—"}</td>
+                      <td className="py-2.5 pr-4 text-navy-700">{b.car && typeof b.car === "object" ? b.car.name : <span className="text-navy-400">Car removed</span>}</td>
                       <td className="py-2.5 pr-4 text-navy-700">{formatINR(b.totalAmount)}</td>
                       <td className="py-2.5 pr-4">
                         <BookingStatusBadge status={b.status} />

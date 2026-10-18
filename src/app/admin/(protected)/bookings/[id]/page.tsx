@@ -276,19 +276,19 @@ export default function BookingDetailPage() {
               <div>
                 <dt className="text-navy-400">Car</dt>
                 <dd className="font-semibold text-navy-900">
-                  {booking.car?.name}
+                  {booking.car?.name ?? <span className="text-navy-400">Car removed from fleet</span>}
                 </dd>
               </div>
               <div>
                 <dt className="text-navy-400">Pickup Location</dt>
                 <dd className="font-semibold text-navy-900">
-                  {booking.pickupLocation?.city}, {booking.pickupLocation?.region}
+                  {booking.pickupLocation ? `${booking.pickupLocation.city}, ${booking.pickupLocation.region}` : "Location removed"}
                 </dd>
               </div>
               <div>
                 <dt className="text-navy-400">Drop Location</dt>
                 <dd className="font-semibold text-navy-900">
-                  {booking.dropLocation?.city}, {booking.dropLocation?.region}
+                  {booking.dropLocation ? `${booking.dropLocation.city}, ${booking.dropLocation.region}` : "Location removed"}
                 </dd>
               </div>
               <div>
