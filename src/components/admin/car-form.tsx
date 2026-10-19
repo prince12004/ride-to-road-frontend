@@ -450,9 +450,9 @@ export function CarForm({ initial, carId }: { initial?: AdminCarDoc; carId?: str
               step="0.5"
               value={values.extraKmRate}
               onChange={(e) => set("extraKmRate", e.target.value)}
-              placeholder="e.g. 10"
+              placeholder="Default ₹7"
             />
-            <p className="mt-1 text-xs text-navy-400">Charged per km beyond the free km allowance.</p>
+            <p className="mt-1 text-xs text-navy-400">Per km beyond the free km. Leave blank for the default (Settings, ₹7).</p>
           </div>
         </div>
       </Card>

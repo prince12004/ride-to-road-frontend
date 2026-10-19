@@ -15,6 +15,7 @@ import { apiFetch, ApiClientError } from "@/lib/api";
 import { toast } from "@/store/toast-store";
 import { formatDateTimeIST, formatINR, istDateInput, istTimeInput } from "@/lib/utils";
 import { formatDuration, MIN_RENTAL_HOURS } from "@/lib/pricing";
+import { docNumberError, squashDocNumber } from "@/lib/document-numbers";
 import type { AdminBookingDetail, AdminLocationDoc, BookingCustomer, BookingSummary } from "@/types";
 
 const errMsg = (err: unknown, fallback = "Try again.") => (err instanceof ApiClientError ? err.message : fallback);
@@ -25,7 +26,28 @@ export function sortDocuments<T extends { type: string }>(docs: T[]): T[] {
   return [...docs].sort((a, b) => rank(a.type) - rank(b.type));
 }
 
-export function CustomerDocumentsCard({ customer }: { customer: BookingCustomer | null }) {
+export function CustomerDocumentsCard({ customer, booking }: { customer: BookingCustomer | null; booking?: AdminBookingDetail }) {
+  const numbers = {
+    aadhaar: booking?.documentNumbers?.aadhaar || customer?.documentNumbers?.aadhaar,
+    drivingLicence: booking?.documentNumbers?.drivingLicence || customer?.documentNumbers?.drivingLicence,
+    pan: booking?.documentNumbers?.pan || customer?.documentNumbers?.pan,
+  };
+  const numberRow = (
+    <dl className="mt-4 grid grid-cols-3 gap-2 text-xs">
+      {(
+        [
+          ["Aadhaar", numbers.aadhaar],
+          ["DL", numbers.drivingLicence],
+          ["PAN", numbers.pan],
+        ] as const
+      ).map(([k, val]) => (
+        <div key={k} className="rounded-xl bg-navy-50 p-2">
+          <dt className="text-navy-400">{k} No.</dt>
+          <dd className="break-all font-mono font-semibold text-navy-900">{val || "—"}</dd>
+        </div>
+      ))}
+    </dl>
+  );
   if (!customer) {
     return (
       <Card className="p-6">
@@ -33,6 +55,7 @@ export function CustomerDocumentsCard({ customer }: { customer: BookingCustomer 
         <p className="mt-2 text-sm text-navy-500">
           No customer account matches this booking&apos;s mobile number, so there are no uploaded documents. Collect copies at pickup.
         </p>
+        {numberRow}
       </Card>
     );
   }
@@ -66,6 +89,7 @@ export function CustomerDocumentsCard({ customer }: { customer: BookingCustomer 
           </p>
         </div>
       </div>
+      {numberRow}
       {docs.length === 0 ? (
         <p className="mt-4 text-sm text-navy-500">The customer hasn&apos;t uploaded any documents yet.</p>
       ) : (
@@ -99,7 +123,17 @@ export function CustomerDocumentsCard({ customer }: { customer: BookingCustomer 
 }
 
 /** Edits customer and trip details. A new schedule is re-priced by the API at the booking's own rates. */
-export function EditBookingButton({ booking, onSaved }: { booking: AdminBookingDetail; onSaved: () => void }) {
+export function EditBookingButton({
+  booking,
+  customer,
+  onSaved,
+}: {
+  booking: AdminBookingDetail;
+  customer?: BookingCustomer | null;
+  onSaved: () => void;
+}) {
+  // After the trip only the paperwork (route, ID numbers) can still change.
+  const paperworkOnly = booking.status === "COMPLETED" || booking.status === "CANCELLED";
   const [open, setOpen] = useState(false);
   const [locations, setLocations] = useState<AdminLocationDoc[]>([]);
   const init = () => ({
@@ -114,6 +148,11 @@ export function EditBookingButton({ booking, onSaved }: { booking: AdminBookingD
     pickupTime: istTimeInput(booking.pickupDate),
     dropDate: istDateInput(booking.dropDate),
     dropTime: istTimeInput(booking.dropDate),
+    tripFrom: booking.tripFrom ?? "",
+    tripTo: booking.tripTo ?? "",
+    aadhaarNumber: booking.documentNumbers?.aadhaar ?? customer?.documentNumbers?.aadhaar ?? "",
+    dlNumber: booking.documentNumbers?.drivingLicence ?? customer?.documentNumbers?.drivingLicence ?? "",
+    panNumber: booking.documentNumbers?.pan ?? customer?.documentNumbers?.pan ?? "",
   });
   const [v, setV] = useState(init);
   const [saving, setSaving] = useState(false);
@@ -132,25 +171,40 @@ export function EditBookingButton({ booking, onSaved }: { booking: AdminBookingD
   );
 
   const save = async () => {
+    const idError = docNumberError("aadhaar", v.aadhaarNumber) ?? docNumberError("drivingLicence", v.dlNumber) ?? docNumberError("pan", v.panNumber);
+    if (idError) return setError(idError);
+    const paperwork = {
+      tripFrom: v.tripFrom,
+      tripTo: v.tripTo,
+      aadhaarNumber: squashDocNumber(v.aadhaarNumber),
+      dlNumber: squashDocNumber(v.dlNumber),
+      panNumber: squashDocNumber(v.panNumber),
+    };
+    if (paperworkOnly) return submit(paperwork);
     if (v.customerName.trim().length < 2) return setError("Enter the customer's name.");
     if (!/^[6-9]\d{9}$/.test(v.mobile.trim())) return setError("Enter a valid 10-digit mobile number.");
     if (scheduleChanged && !(hours >= MIN_RENTAL_HOURS)) return setError(`Minimum rental duration is ${MIN_RENTAL_HOURS} hours.`);
     if (booking.homeDelivery?.requested && v.deliveryAddress.trim().length < 10) return setError("Enter the complete delivery address.");
+    return submit({
+      ...paperwork,
+      customerName: v.customerName,
+      mobile: v.mobile,
+      email: v.email,
+      address: v.address,
+      specialRequest: v.specialRequest,
+      pickupLocationId: v.pickupLocationId || undefined,
+      deliveryAddress: booking.homeDelivery?.requested ? v.deliveryAddress : undefined,
+      ...(scheduleChanged ? { pickupDate: v.pickupDate, pickupTime: v.pickupTime, dropDate: v.dropDate, dropTime: v.dropTime } : {}),
+    });
+  };
+
+  const submit = async (payload: Record<string, unknown>) => {
     setError("");
     setSaving(true);
     try {
       const res = await apiFetch<unknown>(`/admin/bookings/${booking._id}`, {
         method: "PATCH",
-        body: JSON.stringify({
-          customerName: v.customerName,
-          mobile: v.mobile,
-          email: v.email,
-          address: v.address,
-          specialRequest: v.specialRequest,
-          pickupLocationId: v.pickupLocationId || undefined,
-          deliveryAddress: booking.homeDelivery?.requested ? v.deliveryAddress : undefined,
-          ...(scheduleChanged ? { pickupDate: v.pickupDate, pickupTime: v.pickupTime, dropDate: v.dropDate, dropTime: v.dropTime } : {}),
-        }),
+        body: JSON.stringify(payload),
       });
       toast({ title: res.message === "Nothing changed." ? "Nothing changed" : "Booking updated", variant: "success" });
       setOpen(false);
@@ -176,8 +230,35 @@ export function EditBookingButton({ booking, onSaved }: { booking: AdminBookingD
       <Button type="button" variant="outline" onClick={() => setOpen(true)}>
         <Pencil className="size-4" /> Edit
       </Button>
-      <DialogContent title={`Edit ${booking.bookingId}`} description="Changes are saved to the booking history." className="max-w-2xl">
+      <DialogContent
+        title={`Edit ${booking.bookingId}`}
+        description={paperworkOnly ? "This booking is closed — only the route and ID numbers can be changed." : "Changes are saved to the booking history."}
+        className="max-w-2xl"
+      >
         <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <Label>Source (trip starts from)</Label>
+            <Input className="mt-1.5" maxLength={120} placeholder="e.g. Sector 62, Noida" value={v.tripFrom} onChange={(e) => set("tripFrom", e.target.value)} />
+          </div>
+          <div>
+            <Label>Destination</Label>
+            <Input className="mt-1.5" maxLength={120} placeholder="e.g. Jaipur, Rajasthan" value={v.tripTo} onChange={(e) => set("tripTo", e.target.value)} />
+          </div>
+          <div>
+            <Label>Aadhaar number</Label>
+            <Input className="mt-1.5 font-mono" inputMode="numeric" maxLength={14} value={v.aadhaarNumber} onChange={(e) => set("aadhaarNumber", e.target.value)} />
+          </div>
+          <div>
+            <Label>Driving licence number</Label>
+            <Input className="mt-1.5 font-mono uppercase" maxLength={20} value={v.dlNumber} onChange={(e) => set("dlNumber", e.target.value)} />
+          </div>
+          <div>
+            <Label>PAN number</Label>
+            <Input className="mt-1.5 font-mono uppercase" maxLength={10} value={v.panNumber} onChange={(e) => set("panNumber", e.target.value)} />
+          </div>
+        </div>
+        {!paperworkOnly && (
+        <div className="mt-3 grid gap-3 border-t border-navy-100 pt-3 sm:grid-cols-2">
           <div>
             <Label>Customer name</Label>
             <Input className="mt-1.5" value={v.customerName} onChange={(e) => set("customerName", e.target.value)} />
@@ -242,6 +323,7 @@ export function EditBookingButton({ booking, onSaved }: { booking: AdminBookingD
             <Textarea className="mt-1.5" rows={2} value={v.specialRequest} onChange={(e) => set("specialRequest", e.target.value)} />
           </div>
         </div>
+        )}
         {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
         <div className="mt-4 flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={() => setOpen(false)}>

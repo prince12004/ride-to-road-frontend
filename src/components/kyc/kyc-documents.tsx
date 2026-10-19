@@ -1,8 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState, type ChangeEvent } from "react";
-import { CreditCard, FileCheck2, FileText, IdCard, Loader2, ShieldCheck, UploadCloud, type LucideIcon } from "lucide-react";
+import { CreditCard, FileCheck2, FileText, Hash, IdCard, Loader2, Save, ShieldCheck, UploadCloud, type LucideIcon } from "lucide-react";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ImageCropDialog } from "@/components/kyc/image-crop-dialog";
 import { apiFetch, ApiClientError } from "@/lib/api";
 import { toast } from "@/store/toast-store";
 import { cn } from "@/lib/utils";
@@ -88,8 +92,9 @@ export function KycDocumentGrid({
   compact?: boolean;
 }) {
   const [uploadingType, setUploadingType] = useState<string | null>(null);
+  const [cropping, setCropping] = useState<{ slot: KycSlot; file: File } | null>(null);
 
-  const handleFile = async (slot: KycSlot, e: ChangeEvent<HTMLInputElement>) => {
+  const handleFile = (slot: KycSlot, e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
@@ -97,6 +102,12 @@ export function KycDocumentGrid({
       toast({ title: "Unsupported file type", description: "Please upload a JPG, PNG, WEBP image or a PDF.", variant: "error" });
       return;
     }
+    // Photos are adjusted (rotate / crop) first; the cropped copy is what's checked and sent.
+    if (file.type !== "application/pdf") return setCropping({ slot, file });
+    void upload(slot, file);
+  };
+
+  const upload = async (slot: KycSlot, file: File) => {
     if (file.size > MAX_FILE_BYTES) {
       toast({ title: "File too large", description: "Maximum file size is 5MB.", variant: "error" });
       return;
@@ -125,6 +136,17 @@ export function KycDocumentGrid({
   };
 
   return (
+    <>
+    <ImageCropDialog
+      file={cropping?.file ?? null}
+      title={cropping?.slot.label ?? ""}
+      onCancel={() => setCropping(null)}
+      onDone={(cropped) => {
+        const slot = cropping!.slot;
+        setCropping(null);
+        void upload(slot, cropped);
+      }}
+    />
     <div className={cn("grid gap-3", compact ? "grid-cols-2" : "sm:grid-cols-2 sm:gap-4")}>
       {slots.map((slot) => {
         const state = slotState(profile, slot);
@@ -188,6 +210,83 @@ export function KycDocumentGrid({
           </div>
         );
       })}
+    </div>
+    </>
+  );
+}
+
+const NUMBER_FIELDS = [
+  { key: "aadhaarNumber", label: "Aadhaar Number", placeholder: "1234 5678 9012", from: "aadhaar", test: (v: string) => /^[2-9]\d{11}$/.test(v), error: "Aadhaar number must be 12 digits" },
+  { key: "dlNumber", label: "Driving Licence Number", placeholder: "DL0420110012345", from: "drivingLicence", test: (v: string) => /^[A-Z0-9]{8,20}$/.test(v), error: "Enter a valid driving licence number" },
+  { key: "panNumber", label: "PAN Number (optional)", placeholder: "ABCDE1234F", from: "pan", test: (v: string) => /^[A-Z]{5}\d{4}[A-Z]$/.test(v), error: "PAN must look like ABCDE1234F" },
+] as const;
+
+const squash = (v: string) => v.replace(/[\s-]/g, "").toUpperCase();
+
+/** Aadhaar / DL / PAN numbers, typed next to the uploads and printed on the booking form. */
+export function KycNumbersForm({ profile, onSaved, compact = false }: { profile: UserProfile | null; onSaved?: () => void | Promise<void>; compact?: boolean }) {
+  const initial = () =>
+    Object.fromEntries(NUMBER_FIELDS.map((f) => [f.key, profile?.documentNumbers?.[f.from] ?? ""])) as Record<(typeof NUMBER_FIELDS)[number]["key"], string>;
+  const [values, setValues] = useState(initial);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setValues(initial());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.documentNumbers?.aadhaar, profile?.documentNumbers?.drivingLicence, profile?.documentNumbers?.pan]);
+
+  const dirty = NUMBER_FIELDS.some((f) => squash(values[f.key]) !== (profile?.documentNumbers?.[f.from] ?? ""));
+
+  const save = async () => {
+    const errs: Record<string, string> = {};
+    for (const f of NUMBER_FIELDS) {
+      const v = squash(values[f.key]);
+      if (v && !f.test(v)) errs[f.key] = f.error;
+    }
+    setErrors(errs);
+    if (Object.keys(errs).length) return;
+    setSaving(true);
+    try {
+      await apiFetch("/user/verification/numbers", {
+        method: "PUT",
+        body: JSON.stringify(Object.fromEntries(NUMBER_FIELDS.map((f) => [f.key, squash(values[f.key])]))),
+      });
+      toast({ title: "Document numbers saved", variant: "success" });
+      await onSaved?.();
+    } catch (err) {
+      toast({ title: "Could not save", description: err instanceof ApiClientError ? err.message : "Please try again.", variant: "error" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className={cn("rounded-2xl border border-navy-100 bg-white", compact ? "p-3" : "p-5")}>
+      <p className="flex items-center gap-2 font-display text-sm font-bold text-navy-900">
+        <Hash className="size-4 text-brand-deep" /> Document numbers
+      </p>
+      <div className={cn("mt-3 grid gap-3", compact ? "grid-cols-1" : "sm:grid-cols-3")}>
+        {NUMBER_FIELDS.map((f) => (
+          <div key={f.key}>
+            <Label className="text-xs">{f.label}</Label>
+            <Input
+              className="mt-1 font-mono uppercase"
+              inputMode={f.key === "aadhaarNumber" ? "numeric" : "text"}
+              maxLength={f.key === "aadhaarNumber" ? 14 : 20}
+              placeholder={f.placeholder}
+              value={values[f.key]}
+              onChange={(e) => setValues((s) => ({ ...s, [f.key]: e.target.value }))}
+            />
+            {errors[f.key] && <p className="mt-1 text-xs text-red-600">{errors[f.key]}</p>}
+          </div>
+        ))}
+      </div>
+      {dirty && (
+        <Button type="button" size="sm" className="mt-3" onClick={save} disabled={saving}>
+          {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />} Save numbers
+        </Button>
+      )}
     </div>
   );
 }

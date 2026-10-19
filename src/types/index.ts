@@ -163,6 +163,12 @@ export interface PaymentCollection {
   createdAt: string;
 }
 
+export interface DocumentNumbers {
+  aadhaar?: string;
+  drivingLicence?: string;
+  pan?: string;
+}
+
 /** Km driven, extra-km and other charges recorded when a booking is closed. */
 export interface BookingClosure {
   closedAt: string;
@@ -247,6 +253,11 @@ export interface Booking {
   };
   kmPolicy?: { kmPerDay: number; extraKmRate: number };
   closure?: BookingClosure;
+  /** Trip route entered by admin (printed as Source / Destination). */
+  tripFrom?: string;
+  tripTo?: string;
+  /** ID numbers entered by admin for this booking (override the customer's). */
+  documentNumbers?: DocumentNumbers;
   status: BookingStatus;
   source: "ONLINE" | "ADMIN_OFFLINE";
   specialRequest?: string;
@@ -313,6 +324,7 @@ export interface UserProfile {
   state?: string;
   pincode?: string;
   profileImage?: { url: string };
+  documentNumbers?: DocumentNumbers;
   verification: Verification;
   isBlocked: boolean;
   isVerifiedMobile: boolean;
@@ -480,6 +492,7 @@ export interface BookingCustomer {
   pincode?: string;
   profileImage?: { url: string };
   verificationStatus?: VerificationStatus;
+  documentNumbers?: DocumentNumbers;
   documents: { type: string; url: string; isPdf: boolean }[];
 }
 
@@ -655,6 +668,8 @@ export interface CmsSettings {
     maxRentalDays: number;
     /** Km included per completed 24 hours (default 300). */
     kmPerDay?: number;
+    /** Default ₹/km beyond the allowance for cars without their own rate. */
+    extraKmRate?: number;
     taxPercent: number;
     cancellationRulesText?: string;
   };

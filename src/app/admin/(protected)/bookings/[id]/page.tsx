@@ -204,7 +204,7 @@ export default function BookingDetailPage() {
                 <Printer className="size-4" /> Print / PDF
               </Link>
             </Button>
-            {booking.status !== "COMPLETED" && booking.status !== "CANCELLED" && <EditBookingButton booking={booking} onSaved={load} />}
+            <EditBookingButton booking={booking} customer={customer} onSaved={load} />
             {canDelete && <DeleteBookingButton booking={booking} />}
             <Button asChild variant="whatsapp">
               <a href={whatsappHref} target="_blank" rel="noopener noreferrer">
@@ -269,6 +269,14 @@ export default function BookingDetailPage() {
               <div>
                 <dt className="text-navy-400">Return</dt>
                 <dd className="font-semibold text-navy-900">{fmtDateTime(booking.dropDate)}</dd>
+              </div>
+              <div>
+                <dt className="text-navy-400">Source</dt>
+                <dd className="font-semibold text-navy-900">{booking.tripFrom || <span className="font-normal text-navy-400">Not set — use Edit</span>}</dd>
+              </div>
+              <div>
+                <dt className="text-navy-400">Destination</dt>
+                <dd className="font-semibold text-navy-900">{booking.tripTo || <span className="font-normal text-navy-400">Not set — use Edit</span>}</dd>
               </div>
               <div>
                 <dt className="text-navy-400">Duration</dt>
@@ -464,7 +472,7 @@ export default function BookingDetailPage() {
 
           <PaymentCollectionCard booking={booking} onRecorded={load} />
 
-          <CustomerDocumentsCard customer={customer} />
+          <CustomerDocumentsCard customer={customer} booking={booking} />
 
           <Card className="p-6">
             <h2 className="font-display text-lg font-bold text-navy-900">Admin Notes</h2>

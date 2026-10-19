@@ -40,8 +40,8 @@ import { useAuthStore } from "@/store/auth-store";
 import { cn, formatINR, todayInIndia } from "@/lib/utils";
 import { labelForTime } from "@/lib/time-slots";
 import { RENTAL_TERMS } from "@/config/rental-terms";
-import { calculateBaseAmount, DEFAULT_KM_PER_DAY, effectiveDailyRate, formatDuration, includedKm, MIN_RENTAL_HOURS } from "@/lib/pricing";
-import { BOOKING_KYC_SLOTS, KycDocumentGrid, slotState, useKycProfile } from "@/components/kyc/kyc-documents";
+import { calculateBaseAmount, DEFAULT_EXTRA_KM_RATE, DEFAULT_KM_PER_DAY, effectiveDailyRate, formatDuration, includedKm, MIN_RENTAL_HOURS } from "@/lib/pricing";
+import { BOOKING_KYC_SLOTS, KycDocumentGrid, KycNumbersForm, slotState, useKycProfile } from "@/components/kyc/kyc-documents";
 import type { CarDetail, Location, Booking } from "@/types";
 
 const schema = z.object({
@@ -658,7 +658,12 @@ export function BookingForm({
           </div>
           <div className="mt-4">
             {user ? (
-              <KycDocumentGrid slots={BOOKING_KYC_SLOTS} profile={kycProfile} onUploaded={reloadKyc} compact />
+              <>
+                <KycDocumentGrid slots={BOOKING_KYC_SLOTS} profile={kycProfile} onUploaded={reloadKyc} compact />
+                <div className="mt-3">
+                  <KycNumbersForm profile={kycProfile} onSaved={reloadKyc} compact />
+                </div>
+              </>
             ) : (
               <p className="rounded-2xl border border-dashed border-navy-200 bg-navy-50/60 p-4 text-sm text-navy-600">
                 You can upload your Aadhaar and DL (front &amp; back) right after verifying your mobile number when you confirm —
@@ -737,7 +742,7 @@ export function BookingForm({
                   {estimate.freeKm.toLocaleString("en-IN")} km
                   <span className="block text-xs font-normal text-navy-400">
                     {car.kmPerDay ?? DEFAULT_KM_PER_DAY} km per 24 hrs
-                    {car.extraKmRate ? ` · extra ${formatINR(car.extraKmRate)}/km` : ""}
+                     · extra {formatINR(car.extraKmRate ?? DEFAULT_EXTRA_KM_RATE)}/km
                   </span>
                 </dd>
               </div>

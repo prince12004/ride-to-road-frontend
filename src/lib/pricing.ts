@@ -35,6 +35,7 @@ export function calculateBaseAmount(car: RateCard, durationHours: number): numbe
 }
 
 export const DEFAULT_KM_PER_DAY = 300;
+export const DEFAULT_EXTRA_KM_RATE = 7;
 
 /** "1 Day 13 Hours", "2 Days", "5 Hours" — the duration wording used everywhere. */
 export function formatDuration(totalHours: number): string {

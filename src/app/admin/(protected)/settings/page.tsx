@@ -191,6 +191,7 @@ function BookingTab({
   const [maxRentalDays, setMaxRentalDays] = useState(String(settings.booking?.maxRentalDays ?? 30));
   const [taxPercent, setTaxPercent] = useState(String(settings.booking?.taxPercent ?? 0));
   const [kmPerDay, setKmPerDay] = useState(String(settings.booking?.kmPerDay ?? 300));
+  const [extraKmRate, setExtraKmRate] = useState(String(settings.booking?.extraKmRate ?? 7));
   const [cancellationRulesText, setCancellationRulesText] = useState(settings.booking?.cancellationRulesText ?? "");
 
   return (
@@ -215,6 +216,11 @@ function BookingTab({
           <Input className="mt-1.5" type="number" min={0} value={kmPerDay} onChange={(e) => setKmPerDay(e.target.value)} />
           <p className="mt-1 text-xs text-navy-400">E.g. 300 → 24 hrs = 300 km, 72 hrs = 900 km. Applies to new bookings.</p>
         </div>
+        <div>
+          <Label>Default Extra KM Charge (₹/km)</Label>
+          <Input className="mt-1.5" type="number" min={0} step="0.5" value={extraKmRate} onChange={(e) => setExtraKmRate(e.target.value)} />
+          <p className="mt-1 text-xs text-navy-400">Used for every car without its own extra km charge.</p>
+        </div>
       </div>
       <div className="mt-4">
         <Label>Cancellation Rules (optional)</Label>
@@ -230,6 +236,7 @@ function BookingTab({
               maxRentalDays: Number(maxRentalDays),
               taxPercent: Number(taxPercent),
               kmPerDay: Math.max(0, Math.round(Number(kmPerDay) || 0)),
+              extraKmRate: Math.max(0, Number(extraKmRate) || 0),
               cancellationRulesText: cancellationRulesText || undefined,
             },
           })

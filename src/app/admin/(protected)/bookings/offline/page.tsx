@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PageHeader } from "@/components/admin/page-header";
 import { apiFetch, ApiClientError } from "@/lib/api";
 import { toast } from "@/store/toast-store";
+import { docNumberError, squashDocNumber } from "@/lib/document-numbers";
 import type { AdminCarDoc, AdminLocationDoc } from "@/types";
 
 export default function OfflineBookingPage() {
@@ -33,6 +34,11 @@ export default function OfflineBookingPage() {
   const [totalAmount, setTotalAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("OFFLINE_CASH");
   const [adminNotes, setAdminNotes] = useState("");
+  const [tripFrom, setTripFrom] = useState("");
+  const [tripTo, setTripTo] = useState("");
+  const [aadhaarNumber, setAadhaarNumber] = useState("");
+  const [dlNumber, setDlNumber] = useState("");
+  const [panNumber, setPanNumber] = useState("");
 
   useEffect(() => {
     apiFetch<AdminCarDoc[]>("/admin/cars?limit=200").then((res) => setCars(res.data)).catch(() => {});
@@ -47,6 +53,12 @@ export default function OfflineBookingPage() {
     }
     if (new Date(`${dropDate}T${dropTime}`).getTime() - new Date(`${pickupDate}T${pickupTime}`).getTime() < 24 * 60 * 60 * 1000) {
       toast({ title: "Minimum booking is 24 hours", description: "Choose a later drop date or time.", variant: "error" });
+      return;
+    }
+    const idError =
+      docNumberError("aadhaar", aadhaarNumber) ?? docNumberError("drivingLicence", dlNumber) ?? docNumberError("pan", panNumber);
+    if (idError) {
+      toast({ title: "Check the ID numbers", description: idError, variant: "error" });
       return;
     }
     setSubmitting(true);
@@ -67,6 +79,11 @@ export default function OfflineBookingPage() {
           totalAmount: Number(totalAmount),
           paymentMethod,
           adminNotes: adminNotes || undefined,
+          tripFrom: tripFrom.trim() || undefined,
+          tripTo: tripTo.trim() || undefined,
+          aadhaarNumber: squashDocNumber(aadhaarNumber) || undefined,
+          dlNumber: squashDocNumber(dlNumber) || undefined,
+          panNumber: squashDocNumber(panNumber) || undefined,
         }),
       });
       toast({ title: "Offline booking created", description: "The booking has been confirmed.", variant: "success" });
@@ -116,6 +133,18 @@ export default function OfflineBookingPage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <Label>Aadhaar Number (optional)</Label>
+              <Input className="mt-1.5 font-mono" inputMode="numeric" maxLength={14} value={aadhaarNumber} onChange={(e) => setAadhaarNumber(e.target.value)} placeholder="1234 5678 9012" />
+            </div>
+            <div>
+              <Label>Driving Licence Number (optional)</Label>
+              <Input className="mt-1.5 font-mono uppercase" maxLength={20} value={dlNumber} onChange={(e) => setDlNumber(e.target.value)} />
+            </div>
+            <div>
+              <Label>PAN Number (optional)</Label>
+              <Input className="mt-1.5 font-mono uppercase" maxLength={10} value={panNumber} onChange={(e) => setPanNumber(e.target.value)} placeholder="ABCDE1234F" />
             </div>
           </div>
         </Card>
@@ -168,6 +197,14 @@ export default function OfflineBookingPage() {
             <div>
               <Label>Drop Time</Label>
               <Input type="time" className="mt-1.5" value={dropTime} onChange={(e) => setDropTime(e.target.value)} />
+            </div>
+            <div>
+              <Label>Source (trip starts from)</Label>
+              <Input className="mt-1.5" maxLength={120} value={tripFrom} onChange={(e) => setTripFrom(e.target.value)} placeholder="e.g. Sector 62, Noida" />
+            </div>
+            <div>
+              <Label>Destination</Label>
+              <Input className="mt-1.5" maxLength={120} value={tripTo} onChange={(e) => setTripTo(e.target.value)} placeholder="e.g. Jaipur, Rajasthan" />
             </div>
           </div>
         </Card>

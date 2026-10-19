@@ -1,7 +1,7 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
-import { KYC_SLOTS, KycDocumentGrid, slotState, useKycProfile } from "@/components/kyc/kyc-documents";
+import { KYC_SLOTS, KycDocumentGrid, KycNumbersForm, slotState, useKycProfile } from "@/components/kyc/kyc-documents";
 
 const REQUIRED_SLOTS = KYC_SLOTS.filter((s) => s.required);
 
@@ -67,6 +67,8 @@ export default function VerificationPage() {
       </Card>
 
       <KycDocumentGrid slots={KYC_SLOTS} profile={profile} onUploaded={reload} />
+
+      <KycNumbersForm profile={profile} onSaved={reload} />
 
       <p className="text-center text-xs text-navy-400">
         JPG, PNG, WEBP or PDF · max 5MB per file. Your documents are stored privately and only seen by our verification team,

@@ -146,7 +146,7 @@ export default async function CarDetailPage({ params, searchParams }: CarDetailP
                   </div>
                   <div className="flex justify-between">
                     <dt className="text-navy-500">Extra km</dt>
-                    <dd className="font-semibold text-navy-900">{formatINR(car.extraKmRate ?? 0)}/km</dd>
+                    <dd className="font-semibold text-navy-900">{formatINR(car.extraKmRate ?? 7)}/km</dd>
                   </div>
                   <div className="flex justify-between">
                     <dt className="text-navy-500">Minimum booking</dt>

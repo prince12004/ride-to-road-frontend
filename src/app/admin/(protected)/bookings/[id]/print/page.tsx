@@ -26,11 +26,14 @@ interface PrintData {
 }
 
 const DOC_SLOTS = [
-  { label: "Aadhaar Card — Front", types: ["Aadhaar Card (Front)", "Aadhaar Card"] },
-  { label: "Aadhaar Card — Back", types: ["Aadhaar Card (Back)"] },
-  { label: "Driving Licence — Front", types: ["Driving Licence (Front)", "Driving Licence"] },
-  { label: "Driving Licence — Back", types: ["Driving Licence (Back)"] },
-];
+  { label: "Aadhaar Card — Front", types: ["Aadhaar Card (Front)", "Aadhaar Card"], number: "aadhaar" },
+  { label: "Aadhaar Card — Back", types: ["Aadhaar Card (Back)"], number: "aadhaar" },
+  { label: "Driving Licence — Front", types: ["Driving Licence (Front)", "Driving Licence"], number: "drivingLicence" },
+  { label: "Driving Licence — Back", types: ["Driving Licence (Back)"], number: "drivingLicence" },
+] as const;
+
+/** "123456789012" → "1234 5678 9012" for readability on paper. */
+const spacedAadhaar = (n?: string) => (n && /^\d{12}$/.test(n) ? n.replace(/(\d{4})(?=\d)/g, "$1 ") : n);
 
 const dt = formatDateTimeIST;
 const dateOnly = (d: string | Date) =>
@@ -113,12 +116,18 @@ export default function BookingPrintPage() {
 
   const { booking: b, summary: s, customer: c } = data;
   const docs = sortDocuments(c?.documents ?? []);
-  const findDoc = (types: string[]) => docs.find((d) => types.includes(d.type));
+  const findDoc = (types: readonly string[]) => docs.find((d) => types.includes(d.type));
   const collections = b.payment.collections ?? [];
   const extensions = b.extensions ?? [];
   const currentAddress = c
     ? [c.address, c.city, c.state, c.pincode].filter(Boolean).join(", ") || b.address
     : b.address;
+  // Numbers entered by admin on the booking win over the customer's own.
+  const numbers = {
+    aadhaar: spacedAadhaar(b.documentNumbers?.aadhaar || c?.documentNumbers?.aadhaar),
+    drivingLicence: b.documentNumbers?.drivingLicence || c?.documentNumbers?.drivingLicence,
+    pan: b.documentNumbers?.pan || c?.documentNumbers?.pan,
+  };
   const pickup = b.pickupLocation ? `${b.pickupLocation.city}, ${b.pickupLocation.region}` : "—";
   const drop = b.dropLocation ? `${b.dropLocation.city}, ${b.dropLocation.region}` : "—";
 
@@ -194,6 +203,7 @@ export default function BookingPrintPage() {
               <Field label="Name" value={b.customerName} wide />
               <Field label="Email" value={b.email || c?.email} wide />
               <Field label="Phone" value={b.mobile} wide />
+              <Field label="PAN No." value={numbers.pan} wide />
               <Field label="Current address" value={currentAddress} wide />
               <Field label="Permanent address" wide />
               {b.homeDelivery?.requested && <Field label="Delivery address" value={b.homeDelivery.address} wide />}
@@ -226,7 +236,9 @@ export default function BookingPrintPage() {
                       "Not uploaded — attach a copy"
                     )}
                   </div>
-                  <p className="mt-2 border-b border-dotted border-neutral-500 pb-0.5">No:</p>
+                  <p className="mt-2 border-b border-dotted border-neutral-500 pb-0.5">
+                    No: <span className="font-mono font-semibold">{numbers[slot.number] ?? ""}</span>
+                  </p>
                   <p className="mt-2 border-b border-dotted border-neutral-500 pb-0.5">Signature:</p>
                 </div>
               );
@@ -249,8 +261,10 @@ export default function BookingPrintPage() {
               label="Rate"
               value={s.dailyRate != null ? `${formatINR(s.dailyRate)}/day${s.hourlyRate ? ` · ${formatINR(s.hourlyRate)}/hr` : ""}` : undefined}
             />
-            <Field label="Source" value={b.homeDelivery?.requested ? `Home delivery (${pickup})` : pickup} />
-            <Field label="Destination" value={drop} />
+            <Field label="Source" value={b.tripFrom || (b.homeDelivery?.requested ? b.homeDelivery.address : undefined)} />
+            <Field label="Destination" value={b.tripTo} />
+            <Field label="Pickup location" value={b.homeDelivery?.requested ? `Home delivery (${pickup})` : pickup} />
+            <Field label="Return location" value={drop} />
             <Field label="KM allowance" value={`${s.includedKm.toLocaleString("en-IN")} km (${s.kmPerDay} km / 24 hrs)`} />
             <Field label="Extra km rate" value={`${formatINR(s.extraKmRate)} per km`} />
           </div>
