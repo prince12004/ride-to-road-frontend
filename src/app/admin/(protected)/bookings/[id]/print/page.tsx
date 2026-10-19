@@ -226,10 +226,10 @@ export default function BookingPrintPage() {
               return (
                 <div key={slot.label} className="rtr-avoid-break border border-black p-2">
                   <p className="text-[11px] font-bold">{slot.label}</p>
-                  <div className="mt-1 grid h-[42mm] place-items-center overflow-hidden bg-neutral-50 text-[10px] text-neutral-500">
+                  <div className="mt-1 flex h-[46mm] items-center justify-center overflow-hidden bg-neutral-50 text-center text-[10px] text-neutral-500">
                     {doc && !doc.isPdf ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={doc.url} alt={slot.label} className="max-h-full max-w-full object-contain" />
+                      <img src={doc.url} alt={slot.label} className="block h-full w-full object-contain" />
                     ) : doc ? (
                       "PDF on file — attach a printed copy"
                     ) : (
