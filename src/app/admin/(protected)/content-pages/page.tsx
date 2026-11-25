@@ -73,7 +73,7 @@ function ContentPagesContent() {
 
   return (
     <div>
-      <PageHeader title="Content Pages" description="Editable static pages: About Us, Contact Us, Terms, Cancellation & Refund Policy." />
+      <PageHeader title="Content Pages" description="Editable static pages: About Us, Contact Us, Terms, Cancellation, Refund & Privacy Policy." />
 
       {loading ? (
         <div className="flex h-48 items-center justify-center">

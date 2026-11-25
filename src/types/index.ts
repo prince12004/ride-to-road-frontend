@@ -685,7 +685,8 @@ export type SiteContentKey =
   | "contact-us"
   | "terms-and-conditions"
   | "cancellation-policy"
-  | "refund-policy";
+  | "refund-policy"
+  | "privacy-policy";
 
 export interface SiteContentPage {
   _id: string;

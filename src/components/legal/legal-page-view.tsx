@@ -6,6 +6,7 @@ const TITLES = {
   "terms-and-conditions": "Terms & Conditions",
   "cancellation-policy": "Cancellation Policy",
   "refund-policy": "Refund Policy",
+  "privacy-policy": "Privacy Policy",
 } as const;
 
 export type LegalContentKey = keyof typeof TITLES;

@@ -55,6 +55,7 @@ export const footerNav: { title: string; items: NavItem[] }[] = [
       { label: "Terms & Conditions", href: "/terms-and-conditions" },
       { label: "Cancellation Policy", href: "/cancellation-policy" },
       { label: "Refund Policy", href: "/refund-policy" },
+      { label: "Privacy Policy", href: "/privacy-policy" },
     ],
   },
 ];
