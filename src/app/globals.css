@@ -141,3 +141,21 @@
   white-space: normal;
   min-width: 14rem;
 }
+
+/* Admin rich-text editor (components/admin/rich-text-editor.tsx) */
+.rte-content { @apply text-sm leading-relaxed text-navy-800; }
+.rte-content > * + * { @apply mt-3; }
+.rte-content h1 { @apply font-display text-3xl font-extrabold text-navy-900; }
+.rte-content h2 { @apply mt-6 font-display text-2xl font-bold text-navy-900; }
+.rte-content h3 { @apply mt-5 font-display text-xl font-bold text-navy-900; }
+.rte-content h4 { @apply mt-4 font-display text-lg font-bold text-navy-900; }
+.rte-content h5 { @apply mt-4 text-base font-bold text-navy-900; }
+.rte-content h6 { @apply mt-4 text-sm font-bold uppercase tracking-wide text-navy-700; }
+.rte-content ul { @apply list-disc pl-5; }
+.rte-content ol { @apply list-decimal pl-5; }
+.rte-content li > p { @apply m-0; }
+.rte-content a { @apply text-brand-deep underline; }
+.rte-content blockquote { @apply border-l-4 border-lime pl-4 italic text-navy-600; }
+.rte-content hr { @apply my-6 border-navy-200; }
+.rte-content img { @apply max-h-96 rounded-2xl; }
+.rte-content img.ProseMirror-selectednode { @apply ring-4 ring-lime; }

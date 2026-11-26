@@ -5,7 +5,7 @@ import { Loader2, Pencil, FileText } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/admin/rich-text-editor";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/admin/dialog";
 import { PageHeader } from "@/components/admin/page-header";
@@ -111,18 +111,17 @@ function ContentPagesContent() {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent title={`Edit: ${editing?.key ?? ""}`} className="max-w-2xl">
+        <DialogContent title={`Edit: ${editing?.key ?? ""}`} className="max-w-3xl">
           <form onSubmit={onSubmit} className="space-y-4">
             <div>
               <Label>Title</Label>
               <Input className="mt-1.5" value={title} onChange={(e) => setTitle(e.target.value)} />
             </div>
             <div>
-              <Label>Content (HTML)</Label>
-              <Textarea className="mt-1.5 min-h-[350px] font-mono text-sm" value={content} onChange={(e) => setContent(e.target.value)} />
-              <p className="mt-2 text-xs text-navy-400">
-                Raw HTML is trusted here — it is not automatically sanitized like blog content, since this content is admin-only.
-              </p>
+              <Label>Content</Label>
+              <div className="mt-1.5">
+                {open && <RichTextEditor value={content} onChange={setContent} folder="cms" minHeight={300} />}
+              </div>
             </div>
             <Button type="submit" className="w-full" disabled={submitting}>
               {submitting && <Loader2 className="size-4 animate-spin" />}

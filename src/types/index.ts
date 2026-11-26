@@ -27,6 +27,7 @@ export interface Car {
   pricePerDay: number;
   pricePerHour?: number;
   image: string;
+  imageAlt?: string;
   tag?: string;
   status?: "AVAILABLE" | "BOOKED" | "MAINTENANCE" | "INACTIVE";
   available?: boolean;
@@ -82,6 +83,7 @@ export interface BlogPost {
   excerpt: string;
   category: string;
   image: string;
+  imageAlt?: string;
   readTime: string;
   publishedAt: string;
 }
@@ -111,6 +113,8 @@ export interface CarDetail extends Car {
   features: string[];
   specifications: { label: string; value: string }[];
   gallery: string[];
+  /** Alt text per gallery image (same order as `gallery`). */
+  galleryAlts?: string[];
   location: Location | string;
   /** Offered in every city. */
   allCities?: boolean;
@@ -396,6 +400,8 @@ export interface AdminUser {
 export interface ImageRef {
   url: string;
   publicId: string;
+  /** Alt text for accessibility and image search. */
+  alt?: string;
 }
 
 export interface CarSpecification {
@@ -747,4 +753,42 @@ export interface DashboardStats {
   recentBookings: AdminBookingListItem[];
   recentUsers: { name: string; mobile: string; createdAt: string }[];
   dailyRevenue: { date: string; total: number; count: number }[];
+}
+
+export type LandingPageType = "location" | "service";
+export type LandingCarsMode = "none" | "location" | "selected";
+
+export interface LandingFaq {
+  question: string;
+  answer: string;
+}
+
+/** Admin shape of a landing page (ids for relations). */
+export interface AdminLandingPage extends PageIndexing {
+  _id: string;
+  title: string;
+  slug: string;
+  pageType: LandingPageType;
+  h1: string;
+  intro?: string;
+  heroImage?: ImageRef | null;
+  content: string;
+  faqs: LandingFaq[];
+  location?: string | null;
+  carsMode: LandingCarsMode;
+  carsHeading?: string;
+  cars: string[];
+  status: "DRAFT" | "PUBLISHED";
+  publishedAt?: string;
+  showInFooter: boolean;
+  metaTitle?: string;
+  metaDescription?: string;
+  ogImage?: ImageRef | null;
+  updatedAt?: string;
+}
+
+/** Public shape: relations resolved for rendering. */
+export interface PublicLandingPage extends Omit<AdminLandingPage, "location" | "cars"> {
+  location: { city: string; region: string; slug: string } | null;
+  cars: Car[];
 }

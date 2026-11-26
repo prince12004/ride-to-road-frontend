@@ -115,10 +115,14 @@ export default function AdminBlogsPage() {
                   <td className="p-4 text-navy-700">{typeof b.category === "object" ? b.category?.name : "—"}</td>
                   <td className="p-4">
                     <button onClick={() => handleToggleStatus(b)}>
-                      <Badge variant={b.status === "PUBLISHED" ? "success" : "outline"}>{b.status}</Badge>
+                      {b.status === "PUBLISHED" && b.publishedAt && new Date(b.publishedAt).getTime() > Date.now() ? (
+                        <Badge variant="warning">SCHEDULED</Badge>
+                      ) : (
+                        <Badge variant={b.status === "PUBLISHED" ? "success" : "outline"}>{b.status}</Badge>
+                      )}
                     </button>
                   </td>
-                  <td className="p-4 text-navy-400">{b.publishedAt ? new Date(b.publishedAt).toLocaleDateString("en-IN") : "—"}</td>
+                  <td className="p-4 text-navy-400">{b.publishedAt ? new Date(b.publishedAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "—"}</td>
                   <td className="p-4">
                     <div className="flex justify-end gap-1.5">
                       <Link href={`/admin/blogs/${b._id}/edit`} className="grid size-8 place-items-center rounded-full text-navy-500 hover:bg-navy-50">

@@ -28,7 +28,7 @@ interface BlogDetail extends PageIndexing {
   title: string;
   excerpt?: string;
   content: string;
-  image?: { url: string; publicId?: string } | string;
+  image?: { url: string; publicId?: string; alt?: string } | string;
   category?: { name: string } | string;
   readTime?: string;
   publishedAt?: string;
@@ -60,6 +60,7 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ slu
   if (!post) notFound();
 
   const imageUrl = typeof post.image === "string" ? post.image : post.image?.url;
+  const imageAltText = typeof post.image === "object" ? post.image?.alt?.trim() : undefined;
   const categoryName = typeof post.category === "string" ? post.category : post.category?.name;
   const related = allPosts.filter((p) => p.slug !== post.slug).slice(0, 3);
   const shareUrl = whatsappLink(`${post.title} — check this out: ${post.slug}`);
@@ -100,7 +101,7 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ slu
         <div className="container max-w-3xl">
           {imageUrl && (
             <div className="relative -mt-20 aspect-[16/9] overflow-hidden rounded-[2rem] bg-navy-100 shadow-[0_40px_100px_-30px_rgba(8,19,26,0.5)] ring-1 ring-navy-900/5 lg:-mt-28">
-              <Image src={imageUrl} alt={post.title} fill sizes="(min-width: 1024px) 768px, 100vw" className="object-cover" priority />
+              <Image src={imageUrl} alt={imageAltText || post.title} fill sizes="(min-width: 1024px) 768px, 100vw" className="object-cover" priority />
             </div>
           )}
 

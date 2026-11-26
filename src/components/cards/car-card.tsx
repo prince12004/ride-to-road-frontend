@@ -18,7 +18,7 @@ export function CarCard({ car, searchQuery = "" }: { car: Car; searchQuery?: str
       <Link href={`/cars/${car.slug}${searchQuery}`} className="relative aspect-[16/10] overflow-hidden bg-navy-100 sm:aspect-[4/3]">
         <Image
           src={car.image}
-          alt={car.name}
+          alt={car.imageAlt || car.name}
           fill
           sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 85vw"
           className={cn("object-cover transition-transform duration-700 group-hover:scale-105", soldOut && "grayscale")}

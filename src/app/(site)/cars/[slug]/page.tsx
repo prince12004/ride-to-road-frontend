@@ -49,7 +49,9 @@ export default async function CarDetailPage({ params, searchParams }: CarDetailP
   const searchQuery = forwardedQuery.toString() ? `?${forwardedQuery.toString()}` : "";
 
   const location = typeof car.location === "object" ? car.location : null;
+  const galleryAlt = new Map(car.gallery.map((g, i) => [g, car.galleryAlts?.[i] ?? ""]));
   const images = [car.image, ...car.gallery.filter((g) => g !== car.image)];
+  const imageAlts = images.map((src, i) => (i === 0 ? car.imageAlt ?? "" : galleryAlt.get(src) ?? ""));
   const isBookable = car.status === "AVAILABLE";
 
   return (
@@ -83,7 +85,7 @@ export default async function CarDetailPage({ params, searchParams }: CarDetailP
       <section className="py-12 lg:py-16">
         <div className="container grid gap-10 lg:grid-cols-[1.4fr_1fr]">
           <div>
-            <CarGallery images={images} alt={car.name} />
+            <CarGallery images={images} alt={car.name} alts={imageAlts} />
 
             <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
               <SpecTile icon={Users} label="Seats" value={String(car.seats)} />

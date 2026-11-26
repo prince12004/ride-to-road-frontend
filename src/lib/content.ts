@@ -26,6 +26,7 @@ export const TAGS = {
   siteContent: "site-content",
   settings: "settings",
   seo: "seo",
+  landingPages: "landing-pages",
 } as const;
 
 const FALLBACK_SECONDS = 60;
@@ -106,4 +107,17 @@ export async function getFaqs() {
 
 export async function getSiteContent(key: string) {
   return dataOrNull<{ title: string; content: string }>(`/site-content/${key}`, [TAGS.siteContent]);
+}
+
+export async function getLandingPage(slug: string) {
+  return dataOrNull<import("@/types").PublicLandingPage>(`/landing-pages/${encodeURIComponent(slug)}`, [TAGS.landingPages, TAGS.cars]);
+}
+
+/** Landing pages flagged "show in footer". Never breaks the footer: errors return []. */
+export async function getFooterLandingPages(): Promise<{ slug: string; h1: string; title: string }[]> {
+  try {
+    return await data<{ slug: string; h1: string; title: string }[]>("/landing-pages/footer", [TAGS.landingPages]);
+  } catch {
+    return [];
+  }
 }

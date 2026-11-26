@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Plus, X, Eye, EyeOff } from "lucide-react";
+import { Loader2, Plus, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ImageUploader } from "@/components/admin/image-uploader";
+import { RichTextEditor } from "@/components/admin/rich-text-editor";
 import { IndexingControls, LabelWithCounter, SlugInput } from "@/components/admin/seo-fields";
 import { apiFetch, ApiClientError } from "@/lib/api";
 import { toast } from "@/store/toast-store";
@@ -23,7 +24,10 @@ interface FormState extends PageIndexing {
   category: string;
   image: ImageRef | null;
   author: string;
-  status: "DRAFT" | "PUBLISHED";
+  /** SCHEDULED = published with a future publish time. */
+  status: "DRAFT" | "PUBLISHED" | "SCHEDULED";
+  /** datetime-local value (browser local time). */
+  scheduledAt: string;
   seoTitle: string;
   metaDescription: string;
   keywords: string[];
@@ -45,6 +49,7 @@ const emptyForm: FormState = {
   image: null,
   author: "",
   status: "DRAFT",
+  scheduledAt: "",
   seoTitle: "",
   metaDescription: "",
   keywords: [],
@@ -52,6 +57,16 @@ const emptyForm: FormState = {
   ogDescription: "",
   ogImage: null,
 };
+
+function isScheduled(b: Pick<AdminBlog, "status" | "publishedAt">) {
+  return b.status === "PUBLISHED" && Boolean(b.publishedAt) && new Date(b.publishedAt!).getTime() > Date.now();
+}
+
+/** Date -> "YYYY-MM-DDTHH:mm" in the browser's local time, for <input type="datetime-local">. */
+function toLocalInput(d: Date) {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 function blogToForm(b: AdminBlog): FormState {
   return {
@@ -66,7 +81,8 @@ function blogToForm(b: AdminBlog): FormState {
     category: typeof b.category === "object" ? b.category?._id ?? "" : b.category ?? "",
     image: b.image,
     author: b.author ?? "",
-    status: b.status,
+    status: isScheduled(b) ? "SCHEDULED" : b.status,
+    scheduledAt: b.publishedAt ? toLocalInput(new Date(b.publishedAt)) : "",
     seoTitle: b.seoTitle ?? "",
     metaDescription: b.metaDescription ?? "",
     keywords: b.keywords ?? [],
@@ -81,7 +97,6 @@ export function BlogForm({ initial, blogId }: { initial?: AdminBlog; blogId?: st
   const [values, setValues] = useState<FormState>(initial ? blogToForm(initial) : emptyForm);
   const [categories, setCategories] = useState<BlogCategory[]>([]);
   const [keywordInput, setKeywordInput] = useState("");
-  const [showPreview, setShowPreview] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -103,6 +118,18 @@ export function BlogForm({ initial, blogId }: { initial?: AdminBlog; blogId?: st
       toast({ title: "Missing fields", description: "Title, content and image are required.", variant: "error" });
       return;
     }
+    let publishedAt: string | undefined;
+    if (values.status === "SCHEDULED") {
+      const when = values.scheduledAt ? new Date(values.scheduledAt) : null;
+      if (!when || Number.isNaN(when.getTime()) || when.getTime() <= Date.now()) {
+        toast({ title: "Pick a future time", description: "Scheduled posts need a publish date and time in the future.", variant: "error" });
+        return;
+      }
+      publishedAt = when.toISOString();
+    } else if (values.status === "PUBLISHED" && initial && isScheduled(initial)) {
+      // "Publish now" on a post that was scheduled for later.
+      publishedAt = new Date().toISOString();
+    }
     setSubmitting(true);
     try {
       const payload = {
@@ -112,7 +139,8 @@ export function BlogForm({ initial, blogId }: { initial?: AdminBlog; blogId?: st
         category: values.category || undefined,
         image: values.image,
         author: values.author || undefined,
-        status: values.status,
+        status: values.status === "SCHEDULED" ? "PUBLISHED" : values.status,
+        ...(publishedAt ? { publishedAt } : {}),
         slug: values.slug || undefined,
         seoTitle: values.seoTitle,
         metaDescription: values.metaDescription,
@@ -184,48 +212,50 @@ export function BlogForm({ initial, blogId }: { initial?: AdminBlog; blogId?: st
       </Card>
 
       <Card className="p-6">
-        <div className="flex items-center justify-between">
-          <h2 className="font-display text-lg font-bold text-navy-900">Content</h2>
-          <Button type="button" variant="outline" size="sm" onClick={() => setShowPreview((s) => !s)}>
-            {showPreview ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-            {showPreview ? "Hide Preview" : "Preview"}
-          </Button>
+        <h2 className="font-display text-lg font-bold text-navy-900">Content</h2>
+        <p className="mt-1 text-xs text-navy-400">The blog title is the page&apos;s H1 — structure the body with Heading 2 and Heading 3.</p>
+        <div className="mt-3">
+          <RichTextEditor value={values.content} onChange={(html) => set("content", html)} folder="blogs" placeholder="Write your blog post…" />
         </div>
-        <Textarea
-          className="mt-3 min-h-[400px] font-mono text-sm"
-          value={values.content}
-          onChange={(e) => set("content", e.target.value)}
-          placeholder="<p>Write your blog content as HTML...</p>"
-        />
-        <p className="mt-2 text-xs text-navy-400">HTML is supported and sanitized automatically on save.</p>
-        {showPreview && (
-          <div className="mt-4 rounded-2xl border border-navy-100 p-4">
-            <p className="mb-2 text-xs font-semibold uppercase text-navy-400">Preview</p>
-            <div className="max-w-none text-sm text-navy-800 [&_a]:text-brand-deep [&_h2]:mt-4 [&_h2]:font-display [&_h2]:text-lg [&_h2]:font-bold [&_p]:mt-2" dangerouslySetInnerHTML={{ __html: values.content }} />
-          </div>
-        )}
       </Card>
 
       <Card className="p-6">
         <h2 className="font-display text-lg font-bold text-navy-900">Featured Image</h2>
         <div className="mt-3">
-          <ImageUploader label="Image" required value={values.image} onChange={(img) => set("image", img)} folder="blogs" />
+          <ImageUploader label="Image" required withAlt value={values.image} onChange={(img) => set("image", img)} folder="blogs" />
         </div>
       </Card>
 
       <Card className="p-6">
         <h2 className="font-display text-lg font-bold text-navy-900">Status</h2>
-        <div className="mt-3">
-          <Select value={values.status} onValueChange={(v) => set("status", v as "DRAFT" | "PUBLISHED")}>
-            <SelectTrigger className="h-12 w-48 rounded-2xl border border-navy-200 px-4">
+        <div className="mt-3 flex flex-wrap items-end gap-4">
+          <Select value={values.status} onValueChange={(v) => set("status", v as FormState["status"])}>
+            <SelectTrigger className="h-12 w-56 rounded-2xl border border-navy-200 px-4">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="DRAFT">Draft</SelectItem>
               <SelectItem value="PUBLISHED">Published</SelectItem>
+              <SelectItem value="SCHEDULED">Scheduled</SelectItem>
             </SelectContent>
           </Select>
+          {values.status === "SCHEDULED" && (
+            <div>
+              <Label htmlFor="scheduledAt">Publish on</Label>
+              <Input
+                id="scheduledAt"
+                type="datetime-local"
+                className="mt-1.5 w-60"
+                value={values.scheduledAt}
+                min={toLocalInput(new Date())}
+                onChange={(e) => set("scheduledAt", e.target.value)}
+              />
+            </div>
+          )}
         </div>
+        {values.status === "SCHEDULED" && (
+          <p className="mt-2 text-xs text-navy-500">The post goes live automatically at this time (it can take up to a minute to appear).</p>
+        )}
       </Card>
 
       <Card className="p-6">

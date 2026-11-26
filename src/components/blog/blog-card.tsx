@@ -9,7 +9,7 @@ export function BlogCard({ post }: { post: BlogPost }) {
       <div className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-navy-100">
         <Image
           src={post.image}
-          alt={post.title}
+          alt={post.imageAlt || post.title}
           fill
           sizes="(min-width: 768px) 33vw, 100vw"
           className="object-cover transition-transform duration-700 group-hover:scale-105"

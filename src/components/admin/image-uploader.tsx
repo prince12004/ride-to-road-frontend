@@ -35,12 +35,17 @@ export function ImageUploader({
   folder,
   label = "Image",
   required,
+  withAlt,
+  altPlaceholder = "Describe the image, e.g. “White Hyundai Creta parked in Noida”",
 }: {
   value: ImageRef | null | undefined;
   onChange: (image: ImageRef | null) => void;
   folder: string;
   label?: string;
   required?: boolean;
+  /** Show an alt-text field under the uploaded image. */
+  withAlt?: boolean;
+  altPlaceholder?: string;
 }) {
   const [uploading, setUploading] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -57,7 +62,8 @@ export function ImageUploader({
     setUploading(true);
     try {
       const image = await uploadFile(file, folder);
-      onChange(image);
+      // A replacement image keeps the alt text already typed.
+      onChange(value?.alt ? { ...image, alt: value.alt } : image);
     } catch (err) {
       toast({ title: "Upload failed", description: err instanceof ApiClientError ? err.message : "Please try again.", variant: "error" });
     } finally {
@@ -87,10 +93,28 @@ export function ImageUploader({
             <div className="relative size-16 shrink-0 overflow-hidden rounded-xl bg-navy-50">
               <Image src={value.url} alt="" fill className="object-cover" unoptimized />
             </div>
-            <p className="flex-1 truncate text-xs text-navy-500">{value.url}</p>
+            <div className="min-w-0 flex-1">
+              {withAlt ? (
+                <>
+                  <label className="text-[11px] font-semibold uppercase tracking-[0.12em] text-navy-400" htmlFor={`alt-${value.publicId}`}>
+                    Alt text
+                  </label>
+                  <input
+                    id={`alt-${value.publicId}`}
+                    className="mt-1 h-9 w-full rounded-xl border border-navy-200 px-3 text-sm text-navy-900 outline-none focus:ring-2 focus:ring-lime"
+                    value={value.alt ?? ""}
+                    onChange={(e) => onChange({ ...value, alt: e.target.value })}
+                    placeholder={altPlaceholder}
+                  />
+                </>
+              ) : (
+                <p className="truncate text-xs text-navy-500">{value.url}</p>
+              )}
+            </div>
             <button
               type="button"
               onClick={handleRemove}
+              aria-label="Remove image"
               className="grid size-9 shrink-0 place-items-center rounded-full text-navy-400 transition-colors hover:bg-red-50 hover:text-red-600"
             >
               <Trash2 className="size-4" />
@@ -132,11 +156,14 @@ export function GalleryUploader({
   onChange,
   folder,
   label = "Gallery",
+  withAlt,
 }: {
   value: ImageRef[];
   onChange: (images: ImageRef[]) => void;
   folder: string;
   label?: string;
+  /** Show an alt-text field under each image. */
+  withAlt?: boolean;
 }) {
   const [uploading, setUploading] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -172,15 +199,27 @@ export function GalleryUploader({
       <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-navy-400">{label}</p>
       <div className="mt-1.5 flex flex-wrap gap-3">
         {value.map((img, i) => (
-          <div key={img.publicId + i} className="relative size-20 overflow-hidden rounded-xl border border-navy-200 bg-navy-50">
-            <Image src={img.url} alt="" fill className="object-cover" unoptimized />
-            <button
-              type="button"
-              onClick={() => handleRemove(i)}
-              className="absolute right-1 top-1 grid size-5 place-items-center rounded-full bg-navy-950/70 text-white hover:bg-red-600"
-            >
-              <Trash2 className="size-3" />
-            </button>
+          <div key={img.publicId + i} className={withAlt ? "w-36" : undefined}>
+            <div className={cn("relative overflow-hidden rounded-xl border border-navy-200 bg-navy-50", withAlt ? "aspect-[4/3] w-36" : "size-20")}>
+              <Image src={img.url} alt="" fill className="object-cover" unoptimized />
+              <button
+                type="button"
+                onClick={() => handleRemove(i)}
+                aria-label="Remove image"
+                className="absolute right-1 top-1 grid size-5 place-items-center rounded-full bg-navy-950/70 text-white hover:bg-red-600"
+              >
+                <Trash2 className="size-3" />
+              </button>
+            </div>
+            {withAlt && (
+              <input
+                aria-label={`Alt text for image ${i + 1}`}
+                className="mt-1.5 h-8 w-full rounded-lg border border-navy-200 px-2 text-xs text-navy-900 outline-none focus:ring-2 focus:ring-lime"
+                value={img.alt ?? ""}
+                onChange={(e) => onChange(value.map((g, idx) => (idx === i ? { ...g, alt: e.target.value } : g)))}
+                placeholder="Alt text"
+              />
+            )}
           </div>
         ))}
         <button

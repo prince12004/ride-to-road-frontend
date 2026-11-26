@@ -80,7 +80,7 @@ export interface SeoInput {
     metaDescription?: string;
     ogTitle?: string;
     ogDescription?: string;
-    ogImage?: ImageRef | string;
+    ogImage?: ImageRef | string | null;
     keywords?: string[];
     canonicalUrl?: string;
     noindex?: boolean;

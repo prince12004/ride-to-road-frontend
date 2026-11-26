@@ -89,6 +89,7 @@ const NAV: NavItem[] = [
     module: "seo",
     children: [
       { label: "Page Meta", href: "/admin/seo" },
+      { label: "Landing Pages", href: "/admin/seo/landing-pages" },
       { label: "Redirects", href: "/admin/seo/redirects" },
     ],
   },

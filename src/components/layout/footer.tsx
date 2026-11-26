@@ -3,6 +3,7 @@ import { Mail, MapPin, Phone } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { FacebookIcon, InstagramIcon, XIcon, YoutubeIcon } from "@/components/brand/social-icons";
 import { footerNav, siteConfig } from "@/config/site";
+import { getFooterLandingPages } from "@/lib/content";
 
 const socials = [
   { label: "Instagram", href: siteConfig.social.instagram, Icon: InstagramIcon },
@@ -11,7 +12,12 @@ const socials = [
   { label: "X", href: siteConfig.social.x, Icon: XIcon },
 ];
 
-export function Footer() {
+export async function Footer() {
+  // Landing pages marked "Show in footer" — sitewide internal links.
+  const landing = await getFooterLandingPages();
+  const groups = landing.length
+    ? [...footerNav, { title: "Popular", items: landing.map((p) => ({ label: p.title, href: `/${p.slug}` })) }]
+    : footerNav;
   return (
     <footer id="contact" className="relative scroll-mt-20 overflow-hidden bg-navy-950 bg-lanes text-navy-200">
       <div className="container grid gap-12 py-16 lg:grid-cols-[1.3fr_2fr] lg:py-20">
@@ -35,8 +41,8 @@ export function Footer() {
           </ul>
         </div>
 
-        <div className="grid grid-cols-2 gap-10 sm:grid-cols-3">
-          {footerNav.map((group) => (
+        <div className={`grid grid-cols-2 gap-10 ${groups.length > 3 ? "sm:grid-cols-4" : "sm:grid-cols-3"}`}>
+          {groups.map((group) => (
             <div key={group.title}>
               <h3 className="font-display text-sm font-bold uppercase tracking-[0.14em] text-white">{group.title}</h3>
               <ul className="mt-5 space-y-3 text-sm">

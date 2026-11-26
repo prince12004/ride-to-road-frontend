@@ -561,8 +561,8 @@ export function CarForm({ initial, carId }: { initial?: AdminCarDoc; carId?: str
       <Card className="p-6">
         <h2 className="font-display text-lg font-bold text-navy-900">Images</h2>
         <div className="mt-4 grid gap-6 sm:grid-cols-2">
-          <ImageUploader label="Main Image" required value={values.mainImage} onChange={(img) => set("mainImage", img)} folder="cars" />
-          <GalleryUploader label="Gallery" value={values.gallery} onChange={(imgs) => set("gallery", imgs)} folder="cars" />
+          <ImageUploader label="Main Image" required withAlt altPlaceholder="e.g. Hyundai Creta self-drive SUV – front view" value={values.mainImage} onChange={(img) => set("mainImage", img)} folder="cars" />
+          <GalleryUploader label="Gallery" withAlt value={values.gallery} onChange={(imgs) => set("gallery", imgs)} folder="cars" />
         </div>
       </Card>
 
