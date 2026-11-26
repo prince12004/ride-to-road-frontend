@@ -204,7 +204,17 @@ export default function AdminUsersPage() {
               </div>
               <div>
                 <Label>Role</Label>
-                <Select value={form.role} onValueChange={(v) => setForm((s) => ({ ...s, role: v as AdminRole }))}>
+                <Select
+                  value={form.role}
+                  onValueChange={(v) =>
+                    setForm((s) => ({
+                      ...s,
+                      role: v as AdminRole,
+                      // SEO Manager: SEO tools + blogs, nothing about bookings, customers or payments.
+                      ...(v === "SEO_MANAGER" ? { permissions: ["seo", "blogs"] } : {}),
+                    }))
+                  }
+                >
                   <SelectTrigger className="mt-1.5 h-12 rounded-2xl border border-navy-200 px-4">
                     <SelectValue />
                   </SelectTrigger>
@@ -221,6 +231,11 @@ export default function AdminUsersPage() {
 
             <div>
               <Label>Permissions {form.role === "SUPER_ADMIN" && "(Super Admin has full access regardless)"}</Label>
+              {form.role === "SEO_MANAGER" && (
+                <p className="mt-1 text-xs text-navy-500">
+                  SEO Manager defaults: <strong>seo</strong> (page meta, landing pages, car SEO, redirects, schema) and <strong>blogs</strong>. Bookings, customers and payments stay hidden.
+                </p>
+              )}
               <div className="mt-2 grid grid-cols-2 gap-2 rounded-2xl border border-navy-100 p-3 sm:grid-cols-3">
                 {ADMIN_PERMISSION_MODULES.map((mod) => (
                   <label key={mod} className="flex items-center gap-2 text-sm text-navy-700">

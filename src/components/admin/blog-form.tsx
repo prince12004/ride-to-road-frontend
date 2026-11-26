@@ -11,7 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ImageUploader } from "@/components/admin/image-uploader";
 import { RichTextEditor } from "@/components/admin/rich-text-editor";
-import { IndexingControls, LabelWithCounter, SlugInput } from "@/components/admin/seo-fields";
+import { CustomSchemaField, IndexingControls, LabelWithCounter, SlugInput, customSchemaError } from "@/components/admin/seo-fields";
 import { apiFetch, ApiClientError } from "@/lib/api";
 import { toast } from "@/store/toast-store";
 import type { AdminBlog, BlogCategory, ImageRef, PageIndexing } from "@/types";
@@ -43,6 +43,7 @@ const emptyForm: FormState = {
   noindex: false,
   nofollow: false,
   includeInSitemap: true,
+  customSchema: "",
   excerpt: "",
   content: "",
   category: "",
@@ -76,6 +77,7 @@ function blogToForm(b: AdminBlog): FormState {
     noindex: Boolean(b.noindex),
     nofollow: Boolean(b.nofollow),
     includeInSitemap: b.includeInSitemap !== false,
+    customSchema: b.customSchema ?? "",
     excerpt: b.excerpt ?? "",
     content: b.content ?? "",
     category: typeof b.category === "object" ? b.category?._id ?? "" : b.category ?? "",
@@ -118,6 +120,11 @@ export function BlogForm({ initial, blogId }: { initial?: AdminBlog; blogId?: st
       toast({ title: "Missing fields", description: "Title, content and image are required.", variant: "error" });
       return;
     }
+    const schemaError = customSchemaError(values.customSchema ?? "");
+    if (schemaError) {
+      toast({ title: "Fix the custom schema", description: schemaError, variant: "error" });
+      return;
+    }
     let publishedAt: string | undefined;
     if (values.status === "SCHEDULED") {
       const when = values.scheduledAt ? new Date(values.scheduledAt) : null;
@@ -152,6 +159,7 @@ export function BlogForm({ initial, blogId }: { initial?: AdminBlog; blogId?: st
         noindex: values.noindex,
         nofollow: values.nofollow,
         includeInSitemap: values.includeInSitemap,
+        customSchema: values.customSchema,
       };
       if (blogId) {
         await apiFetch(`/admin/blogs/${blogId}`, { method: "PUT", body: JSON.stringify(payload) });
@@ -307,6 +315,11 @@ export function BlogForm({ initial, blogId }: { initial?: AdminBlog; blogId?: st
           </div>
           <ImageUploader label="OG Image (optional)" value={values.ogImage} onChange={(img) => set("ogImage", img)} folder="blogs" />
           <IndexingControls idPrefix="blog" value={values} onChange={(patch) => setValues((s) => ({ ...s, ...patch }))} />
+          <CustomSchemaField
+            value={values.customSchema ?? ""}
+            onChange={(v) => set("customSchema", v)}
+            autoNote="Added automatically: BlogPosting (article), breadcrumbs and business details."
+          />
         </div>
       </Card>
 

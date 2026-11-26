@@ -113,3 +113,57 @@ export function IndexingControls({
     </div>
   );
 }
+
+/** Returns an error message for invalid custom JSON-LD, or null when valid / empty. */
+export function customSchemaError(value: string): string | null {
+  const raw = value.trim();
+  if (!raw) return null;
+  if (/^<script/i.test(raw)) return "Paste only the JSON — without the <script> tags.";
+  try {
+    const parsed = JSON.parse(raw);
+    const items = Array.isArray(parsed) ? parsed : [parsed];
+    if (!items.length || !items.every((i) => i && typeof i === "object" && !Array.isArray(i))) {
+      return "Must be a JSON object, or an array of objects.";
+    }
+    return null;
+  } catch (e) {
+    return `Invalid JSON: ${(e as Error).message}`;
+  }
+}
+
+/**
+ * Extra JSON-LD for one page, added next to the automatic schema
+ * (business, breadcrumbs, article / car / FAQ).
+ */
+export function CustomSchemaField({ value, onChange, autoNote }: { value: string; onChange: (v: string) => void; autoNote?: string }) {
+  const error = customSchemaError(value);
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-3">
+        <Label>Custom schema (JSON-LD, optional)</Label>
+        <a
+          href="https://search.google.com/test/rich-results"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs font-semibold text-brand-deep hover:underline"
+        >
+          Test in Google ↗
+        </a>
+      </div>
+      <textarea
+        className={cn(
+          "mt-1.5 block min-h-[140px] w-full rounded-2xl border px-4 py-3 font-mono text-xs leading-relaxed text-navy-800 outline-none focus:ring-2 focus:ring-lime",
+          error ? "border-red-300" : "border-navy-200",
+        )}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        spellCheck={false}
+        placeholder={'{\n  "@context": "https://schema.org",\n  "@type": "Event",\n  "name": "…"\n}'}
+        aria-label="Custom schema JSON-LD"
+      />
+      <p className={cn("mt-1.5 text-xs", error ? "font-medium text-red-600" : "text-navy-400")}>
+        {error ?? autoNote ?? "Added automatically: business details and breadcrumbs. Use this only for extra schema types."}
+      </p>
+    </div>
+  );
+}

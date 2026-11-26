@@ -383,7 +383,7 @@ export const ADMIN_PERMISSION_MODULES = [
 ] as const;
 export type AdminPermissionModule = (typeof ADMIN_PERMISSION_MODULES)[number];
 
-export const ADMIN_ROLES = ["SUPER_ADMIN", "ADMIN", "MANAGER", "CONTENT_MANAGER", "BOOKING_MANAGER"] as const;
+export const ADMIN_ROLES = ["SUPER_ADMIN", "ADMIN", "MANAGER", "CONTENT_MANAGER", "BOOKING_MANAGER", "SEO_MANAGER"] as const;
 export type AdminRole = (typeof ADMIN_ROLES)[number];
 
 export interface AdminUser {
@@ -421,6 +421,8 @@ export interface PageIndexing {
   noindex?: boolean;
   nofollow?: boolean;
   includeInSitemap?: boolean;
+  /** Extra JSON-LD entered by an admin (validated JSON). */
+  customSchema?: string;
 }
 
 export interface CarSeo extends PageIndexing {

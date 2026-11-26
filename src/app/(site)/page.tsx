@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PageCustomSchema } from "@/components/seo/page-custom-schema";
 import { DEFAULT_HOME_TITLE, staticPageMetadata } from "@/lib/seo";
 import { AttachCarBand } from "@/components/sections/attach-car-band";
 import { Cta } from "@/components/sections/cta";
@@ -38,6 +39,7 @@ export default async function HomePage() {
 
   return (
     <>
+      <PageCustomSchema path="/" />
       <Hero cities={locations.map((l) => l.city)} />
       <FeaturedCars cars={cars} />
       <HowItWorks />

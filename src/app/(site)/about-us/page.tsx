@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PageCustomSchema } from "@/components/seo/page-custom-schema";
 import { staticPageMetadata } from "@/lib/seo";
 import Image from "next/image";
 import Link from "next/link";
@@ -54,6 +55,7 @@ export default async function AboutUsPage() {
 
   return (
     <>
+      <PageCustomSchema path="/about-us" />
       <section className="relative isolate overflow-hidden bg-navy-950 bg-lanes py-20 lg:py-28">
         <div className="pointer-events-none absolute -left-32 top-0 -z-10 size-[420px] rounded-full bg-lime/15 blur-[140px]" />
         <div className="container grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">

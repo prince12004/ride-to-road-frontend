@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PageCustomSchema } from "@/components/seo/page-custom-schema";
 import { staticPageMetadata } from "@/lib/seo";
 import { Mail, MapPin, MessageCircle, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,7 @@ export default async function ContactUsPage() {
 
   return (
     <>
+      <PageCustomSchema path="/contact-us" />
       <section className="bg-navy-950 bg-lanes py-14 lg:py-16">
         <div className="container">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-lime">Contact</p>

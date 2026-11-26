@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ImageUploader } from "@/components/admin/image-uploader";
 import { RichTextEditor } from "@/components/admin/rich-text-editor";
-import { IndexingControls, LabelWithCounter, SlugInput, toSlug } from "@/components/admin/seo-fields";
+import { CustomSchemaField, IndexingControls, LabelWithCounter, SlugInput, customSchemaError, toSlug } from "@/components/admin/seo-fields";
 import { apiFetch, ApiClientError } from "@/lib/api";
 import { toast } from "@/store/toast-store";
 import type { AdminLandingPage, Car, LandingCarsMode, LandingFaq, LandingPageType, Location } from "@/types";
@@ -41,6 +41,7 @@ const emptyForm: FormState = {
   noindex: false,
   nofollow: false,
   includeInSitemap: true,
+  customSchema: "",
 };
 
 function toForm(p: AdminLandingPage): FormState {
@@ -52,6 +53,7 @@ function toForm(p: AdminLandingPage): FormState {
     metaTitle: p.metaTitle ?? "",
     metaDescription: p.metaDescription ?? "",
     canonicalUrl: p.canonicalUrl ?? "",
+    customSchema: p.customSchema ?? "",
     location: p.location ?? null,
     cars: (p.cars ?? []).map(String),
     faqs: p.faqs ?? [],
@@ -91,6 +93,11 @@ export function LandingPageForm({ initial }: { initial?: AdminLandingPage }) {
   const save = async (status: "DRAFT" | "PUBLISHED") => {
     if (!values.title.trim() || !values.h1.trim()) {
       toast({ title: "Missing fields", description: "Page name and H1 heading are required.", variant: "error" });
+      return;
+    }
+    const schemaError = customSchemaError(values.customSchema ?? "");
+    if (schemaError) {
+      toast({ title: "Fix the custom schema", description: schemaError, variant: "error" });
       return;
     }
     if (values.carsMode === "location" && !values.location) {
@@ -295,6 +302,11 @@ export function LandingPageForm({ initial }: { initial?: AdminLandingPage }) {
           </div>
           <ImageUploader label="Social share image (optional)" value={values.ogImage} onChange={(img) => set("ogImage", img)} folder="landing" />
           <IndexingControls idPrefix="landing" value={values} onChange={(patch) => setValues((s) => ({ ...s, ...patch }))} />
+          <CustomSchemaField
+            value={values.customSchema ?? ""}
+            onChange={(v) => set("customSchema", v)}
+            autoNote="Added automatically: FAQPage (from the FAQs above), breadcrumbs and business details."
+          />
           <label htmlFor="landing-footer" className="flex cursor-pointer items-start gap-2.5 rounded-2xl border border-navy-100 p-3">
             <Checkbox id="landing-footer" checked={values.showInFooter} onCheckedChange={(v) => set("showInFooter", Boolean(v))} />
             <span>

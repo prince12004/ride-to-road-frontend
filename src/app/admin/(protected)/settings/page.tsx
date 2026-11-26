@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Loader2, Save } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -80,7 +81,12 @@ function AdminSettingsContent() {
           <BookingTab settings={settings} onSave={save} saving={saving} />
         </TabsContent>
         <TabsContent value="seo">
-          <SeoTab settings={settings} onSave={save} saving={saving} />
+          <Card className="p-6">
+            <p className="text-sm text-navy-700">SEO defaults and the business schema now live in <strong>SEO → Site Settings</strong>.</p>
+            <Button asChild className="mt-4">
+              <Link href="/admin/seo/settings">Open SEO Settings</Link>
+            </Button>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
@@ -244,52 +250,6 @@ function BookingTab({
       >
         {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
         Save Booking Rules
-      </Button>
-    </Card>
-  );
-}
-
-function SeoTab({
-  settings,
-  onSave,
-  saving,
-}: {
-  settings: CmsSettings;
-  onSave: (p: Partial<CmsSettings>) => void;
-  saving: boolean;
-}) {
-  const [defaultSeoTitle, setDefaultSeoTitle] = useState(settings.seo?.defaultSeoTitle ?? "");
-  const [defaultDescription, setDefaultDescription] = useState(settings.seo?.defaultDescription ?? "");
-  const [defaultOgImage, setDefaultOgImage] = useState(settings.seo?.defaultOgImage ?? null);
-
-  return (
-    <Card className="p-6">
-      <div>
-        <Label>Fallback SEO Title (pages without their own title)</Label>
-        <Input className="mt-1.5" value={defaultSeoTitle} onChange={(e) => setDefaultSeoTitle(e.target.value)} />
-      </div>
-      <div className="mt-4">
-        <Label>Default Meta Description (pages without their own description)</Label>
-        <Textarea className="mt-1.5" value={defaultDescription} onChange={(e) => setDefaultDescription(e.target.value)} />
-      </div>
-      <div className="mt-4">
-        <ImageUploader label="Default OG Image" value={defaultOgImage} onChange={setDefaultOgImage} folder="cms" />
-      </div>
-      <Button
-        className="mt-6"
-        disabled={saving}
-        onClick={() =>
-          onSave({
-            seo: {
-              defaultSeoTitle: defaultSeoTitle || undefined,
-              defaultDescription: defaultDescription || undefined,
-              defaultOgImage: defaultOgImage ?? undefined,
-            },
-          })
-        }
-      >
-        {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-        Save SEO Defaults
       </Button>
     </Card>
   );

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
+import { CustomJsonLd, JsonLd, breadcrumbSchema, carSchema } from "@/lib/schema";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight, Fuel, MapPin, Settings2, Users, Check, ShieldCheck, Truck, FileCheck2, Sparkles } from "lucide-react";
@@ -56,6 +57,29 @@ export default async function CarDetailPage({ params, searchParams }: CarDetailP
 
   return (
     <>
+      <JsonLd
+        data={[
+          carSchema({
+            slug: car.slug,
+            name: car.name,
+            brand: car.brand,
+            description: car.seo?.metaDescription || car.description,
+            images,
+            pricePerDay: car.pricePerDay,
+            available: isBookable,
+            seats: car.seats,
+            transmission: car.transmission,
+            fuel: car.fuel,
+            category: car.category,
+          }),
+          breadcrumbSchema([
+            { name: "Home", path: "/" },
+            { name: "Cars", path: "/cars" },
+            { name: car.name, path: `/cars/${car.slug}` },
+          ]),
+        ]}
+      />
+      <CustomJsonLd value={car.seo?.customSchema} />
       <section className="bg-navy-950 bg-lanes py-14 lg:py-16">
         <div className="container">
           <div className="flex flex-wrap items-center gap-2">

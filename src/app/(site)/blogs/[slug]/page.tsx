@@ -9,6 +9,7 @@ import { ProseContent } from "@/components/legal/prose-content";
 import { getBlogBySlug, getBlogPosts } from "@/lib/content";
 import { whatsappLink } from "@/lib/whatsapp";
 import { buildMetadata, imageUrl } from "@/lib/seo";
+import { CustomJsonLd, JsonLd, blogPostingSchema, breadcrumbSchema } from "@/lib/schema";
 import type { ImageRef, PageIndexing } from "@/types";
 
 /**
@@ -32,6 +33,8 @@ interface BlogDetail extends PageIndexing {
   category?: { name: string } | string;
   readTime?: string;
   publishedAt?: string;
+  updatedAt?: string;
+  author?: string;
 }
 
 async function getPost(slug: string) {
@@ -67,6 +70,27 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ slu
 
   return (
     <>
+      <JsonLd
+        data={[
+          blogPostingSchema({
+            slug: post.slug,
+            title: post.title,
+            description: post.metaDescription || post.excerpt,
+            image: imageUrl,
+            author: post.author,
+            publishedAt: post.publishedAt,
+            updatedAt: post.updatedAt,
+            category: categoryName,
+            keywords: post.keywords,
+          }),
+          breadcrumbSchema([
+            { name: "Home", path: "/" },
+            { name: "Blogs", path: "/blogs" },
+            { name: post.title, path: `/blogs/${post.slug}` },
+          ]),
+        ]}
+      />
+      <CustomJsonLd value={post.customSchema} />
       <section className="bg-navy-950 bg-lanes py-14 lg:py-16">
         <div className="container max-w-3xl">
           <Link href="/blogs" className="inline-flex items-center gap-1.5 text-xs font-semibold text-navy-300 hover:text-lime">

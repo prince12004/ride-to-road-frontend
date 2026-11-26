@@ -90,13 +90,22 @@ const NAV: NavItem[] = [
     children: [
       { label: "Page Meta", href: "/admin/seo" },
       { label: "Landing Pages", href: "/admin/seo/landing-pages" },
+      { label: "Car SEO", href: "/admin/seo/cars" },
       { label: "Redirects", href: "/admin/seo/redirects" },
+      { label: "Site Settings", href: "/admin/seo/settings" },
     ],
   },
   { label: "Settings", href: "/admin/settings", icon: Settings, module: "settings" },
   { label: "Users", href: "/admin/users", icon: ShieldCheck, module: "__super_admin_only" },
   { label: "Activity Logs", href: "/admin/activity-logs", icon: History, module: "activityLogs" },
 ];
+
+/** First admin page this user can open — where users without dashboard access land. */
+export function firstAllowedAdminHref(role: string | undefined, hasPermission: (m: string) => boolean): string | null {
+  if (role === "SUPER_ADMIN") return "/admin";
+  const item = NAV.find((n) => n.module && n.module !== "__super_admin_only" && hasPermission(n.module));
+  return item?.href ?? null;
+}
 
 export function AdminSidebar({ mobile = false }: { mobile?: boolean }) {
   const pathname = usePathname();

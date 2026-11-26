@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PageCustomSchema } from "@/components/seo/page-custom-schema";
 import { staticPageMetadata } from "@/lib/seo";
 import { BlogCard } from "@/components/blog/blog-card";
 import { getBlogPosts } from "@/lib/content";
@@ -15,6 +16,7 @@ export default async function BlogsPage() {
 
   return (
     <>
+      <PageCustomSchema path="/blogs" />
       <section className="bg-navy-950 bg-lanes py-14 lg:py-16">
         <div className="container">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-lime">Road Notes</p>

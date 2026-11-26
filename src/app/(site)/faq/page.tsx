@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { staticPageMetadata } from "@/lib/seo";
+import { JsonLd, faqPageSchema } from "@/lib/schema";
+import { PageCustomSchema } from "@/components/seo/page-custom-schema";
 import { MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -18,6 +20,8 @@ export default async function FaqPage() {
 
   return (
     <>
+      <JsonLd data={faqPageSchema(faqs)} />
+      <PageCustomSchema path="/faq" />
       <section className="bg-navy-950 bg-lanes py-14 lg:py-16">
         <div className="container text-center">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-lime">FAQ</p>

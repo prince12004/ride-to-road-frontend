@@ -11,7 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ImageUploader, GalleryUploader } from "@/components/admin/image-uploader";
-import { IndexingControls, LabelWithCounter, SlugInput } from "@/components/admin/seo-fields";
+import { CustomSchemaField, IndexingControls, LabelWithCounter, SlugInput, customSchemaError } from "@/components/admin/seo-fields";
 import { apiFetch, ApiClientError } from "@/lib/api";
 import { toast } from "@/store/toast-store";
 import type { AdminCarDoc, AdminLocationDoc, CarSpecification, ImageRef, PageIndexing } from "@/types";
@@ -86,6 +86,7 @@ const emptyValues: CarFormValues = {
   noindex: false,
   nofollow: false,
   includeInSitemap: true,
+  customSchema: "",
 };
 
 export function carDocToFormValues(car: AdminCarDoc): CarFormValues {
@@ -125,6 +126,7 @@ export function carDocToFormValues(car: AdminCarDoc): CarFormValues {
     noindex: Boolean(car.seo?.noindex),
     nofollow: Boolean(car.seo?.nofollow),
     includeInSitemap: car.seo?.includeInSitemap !== false,
+    customSchema: car.seo?.customSchema ?? "",
   };
 }
 
@@ -177,6 +179,7 @@ function buildPayload(v: CarFormValues) {
       noindex: v.noindex,
       nofollow: v.nofollow,
       includeInSitemap: v.includeInSitemap,
+      customSchema: v.customSchema,
     },
   };
 }
@@ -209,6 +212,11 @@ export function CarForm({ initial, carId }: { initial?: AdminCarDoc; carId?: str
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const schemaError = customSchemaError(values.customSchema ?? "");
+    if (schemaError) {
+      toast({ title: "Fix the custom schema", description: schemaError, variant: "error" });
+      return;
+    }
     if (!values.name || !values.brand || !values.model) {
       toast({ title: "Missing fields", description: "Name, brand and model are required.", variant: "error" });
       return;
@@ -612,6 +620,11 @@ export function CarForm({ initial, carId }: { initial?: AdminCarDoc; carId?: str
           </div>
           <ImageUploader label="OG Image" value={values.ogImage} onChange={(img) => set("ogImage", img)} folder="cars" />
           <IndexingControls idPrefix="car" value={values} onChange={(patch) => setValues((s) => ({ ...s, ...patch }))} />
+          <CustomSchemaField
+            value={values.customSchema ?? ""}
+            onChange={(v) => set("customSchema", v)}
+            autoNote="Added automatically: Product/Car with daily price and availability, breadcrumbs and business details."
+          />
         </div>
       </Card>
 

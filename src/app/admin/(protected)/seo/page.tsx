@@ -11,7 +11,7 @@ import { Dialog, DialogContent } from "@/components/admin/dialog";
 import { PageHeader } from "@/components/admin/page-header";
 import { PermissionGate } from "@/components/admin/permission-gate";
 import { ImageUploader } from "@/components/admin/image-uploader";
-import { IndexingControls, LabelWithCounter } from "@/components/admin/seo-fields";
+import { CustomSchemaField, IndexingControls, LabelWithCounter, customSchemaError } from "@/components/admin/seo-fields";
 import { apiFetch, ApiClientError } from "@/lib/api";
 import { toast } from "@/store/toast-store";
 import type { PageSeo } from "@/types";
@@ -51,6 +51,11 @@ function PageMetaContent() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editing) return;
+    const schemaError = customSchemaError(editing.customSchema ?? "");
+    if (schemaError) {
+      toast({ title: "Fix the custom schema", description: schemaError, variant: "error" });
+      return;
+    }
     setSubmitting(true);
     try {
       await apiFetch("/admin/seo/pages", {
@@ -64,6 +69,7 @@ function PageMetaContent() {
           noindex: Boolean(editing.noindex),
           nofollow: Boolean(editing.nofollow),
           includeInSitemap: editing.includeInSitemap !== false,
+          customSchema: editing.customSchema ?? "",
         }),
       });
       toast({ title: "Page SEO saved", description: "Live on the website within a few seconds.", variant: "success" });
@@ -165,6 +171,15 @@ function PageMetaContent() {
               </div>
               <ImageUploader label="Social share image (optional)" value={editing.ogImage ?? null} onChange={(img) => patch({ ogImage: img ?? undefined })} folder="cms" />
               <IndexingControls idPrefix="page" value={editing} onChange={patch} />
+              <CustomSchemaField
+                value={editing.customSchema ?? ""}
+                onChange={(v) => patch({ customSchema: v })}
+                autoNote={
+                  editing.path === "/faq"
+                    ? "Added automatically: FAQPage from your FAQs, plus business details."
+                    : "Added automatically on every page: business (AutoRental) and website details."
+                }
+              />
               <Button type="submit" className="w-full" disabled={submitting}>
                 {submitting && <Loader2 className="size-4 animate-spin" />}
                 Save

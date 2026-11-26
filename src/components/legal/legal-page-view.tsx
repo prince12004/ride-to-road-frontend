@@ -1,6 +1,7 @@
 import { getSiteContent } from "@/lib/content";
 import { ContentPlaceholder } from "@/components/legal/content-placeholder";
 import { ProseContent } from "@/components/legal/prose-content";
+import { PageCustomSchema } from "@/components/seo/page-custom-schema";
 
 const TITLES = {
   "terms-and-conditions": "Terms & Conditions",
@@ -17,6 +18,7 @@ export async function LegalPageView({ contentKey }: { contentKey: LegalContentKe
 
   return (
     <>
+      <PageCustomSchema path={`/${contentKey}`} />
       <section className="bg-navy-950 bg-lanes py-14 lg:py-16">
         <div className="container">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-lime">Legal</p>

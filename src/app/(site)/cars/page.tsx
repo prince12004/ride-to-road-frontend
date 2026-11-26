@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PageCustomSchema } from "@/components/seo/page-custom-schema";
 import { staticPageMetadata } from "@/lib/seo";
 import { CarsBrowser } from "@/components/cards/cars-browser";
 import { Cta } from "@/components/sections/cta";
@@ -34,6 +35,7 @@ export default async function CarsPage({ searchParams }: CarsPageProps) {
 
   return (
     <>
+      <PageCustomSchema path="/cars" />
       <section className="bg-navy-950 bg-lanes py-16 lg:py-20">
         <div className="container">
           <p className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-lime">

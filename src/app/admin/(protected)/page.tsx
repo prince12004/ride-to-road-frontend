@@ -1,5 +1,9 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useAdminAuthStore } from "@/store/admin-auth-store";
+import { firstAllowedAdminHref } from "@/components/admin/sidebar";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Car, CalendarClock, Users, IndianRupee, TrendingUp } from "lucide-react";
@@ -59,6 +63,27 @@ function StatCard({
 }
 
 export default function AdminDashboardPage() {
+  const router = useRouter();
+  const { admin, hasPermission } = useAdminAuthStore();
+  const canSeeDashboard = admin?.role === "SUPER_ADMIN" || hasPermission("dashboard");
+
+  useEffect(() => {
+    if (!admin || canSeeDashboard) return;
+    const target = firstAllowedAdminHref(admin.role, hasPermission);
+    if (target && target !== "/admin") router.replace(target);
+  }, [admin, canSeeDashboard, hasPermission, router]);
+
+  if (admin && !canSeeDashboard) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="size-6 animate-spin text-navy-400" />
+      </div>
+    );
+  }
+  return <DashboardContent />;
+}
+
+function DashboardContent() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 

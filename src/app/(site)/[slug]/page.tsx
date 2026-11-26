@@ -10,6 +10,7 @@ import { ProseContent } from "@/components/legal/prose-content";
 import { Cta } from "@/components/sections/cta";
 import { getLandingPage } from "@/lib/content";
 import { buildMetadata, imageUrl } from "@/lib/seo";
+import { CustomJsonLd, JsonLd, breadcrumbSchema, faqPageSchema } from "@/lib/schema";
 import { whatsappLink } from "@/lib/whatsapp";
 
 /**
@@ -42,9 +43,20 @@ export default async function LandingPageView({ params }: Props) {
   const hero = page.heroImage?.url;
   const carsHeading = page.carsHeading || (page.location ? `Self-drive cars available in ${page.location.city}` : "Cars you can book");
   const browseHref = page.location ? `/cars?city=${encodeURIComponent(page.location.city)}` : "/cars";
+  const faqSchema = faqPageSchema(page.faqs);
 
   return (
     <>
+      <JsonLd
+        data={[
+          breadcrumbSchema([
+            { name: "Home", path: "/" },
+            { name: page.title || page.h1, path: `/${page.slug}` },
+          ]),
+          ...(faqSchema ? [faqSchema] : []),
+        ]}
+      />
+      <CustomJsonLd value={page.customSchema} />
       <section className="relative isolate overflow-hidden bg-navy-950 bg-lanes py-14 lg:py-20">
         {hero && (
           <>
