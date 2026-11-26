@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { staticPageMetadata } from "@/lib/seo";
 import { Mail, MapPin, MessageCircle, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -26,10 +27,12 @@ async function getSettings() {
   }
 }
 
-export const metadata: Metadata = {
-  title: "Contact Us",
-  description: "Get in touch with the Ride to Road team for bookings, support or general queries.",
-};
+export function generateMetadata(): Promise<Metadata> {
+  return staticPageMetadata("/contact-us", {
+    title: "Contact Us",
+    description: "Get in touch with the Ride to Road team for bookings, support or general queries.",
+  });
+}
 
 export default async function ContactUsPage() {
   const [settings, intro] = await Promise.all([getSettings(), getSiteContent("contact-us")]);

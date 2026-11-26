@@ -10,12 +10,14 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ImageUploader } from "@/components/admin/image-uploader";
+import { IndexingControls, LabelWithCounter, SlugInput } from "@/components/admin/seo-fields";
 import { apiFetch, ApiClientError } from "@/lib/api";
 import { toast } from "@/store/toast-store";
-import type { AdminBlog, BlogCategory, ImageRef } from "@/types";
+import type { AdminBlog, BlogCategory, ImageRef, PageIndexing } from "@/types";
 
-interface FormState {
+interface FormState extends PageIndexing {
   title: string;
+  slug: string;
   excerpt: string;
   content: string;
   category: string;
@@ -32,6 +34,11 @@ interface FormState {
 
 const emptyForm: FormState = {
   title: "",
+  slug: "",
+  canonicalUrl: "",
+  noindex: false,
+  nofollow: false,
+  includeInSitemap: true,
   excerpt: "",
   content: "",
   category: "",
@@ -49,6 +56,11 @@ const emptyForm: FormState = {
 function blogToForm(b: AdminBlog): FormState {
   return {
     title: b.title,
+    slug: b.slug ?? "",
+    canonicalUrl: b.canonicalUrl ?? "",
+    noindex: Boolean(b.noindex),
+    nofollow: Boolean(b.nofollow),
+    includeInSitemap: b.includeInSitemap !== false,
     excerpt: b.excerpt ?? "",
     content: b.content ?? "",
     category: typeof b.category === "object" ? b.category?._id ?? "" : b.category ?? "",
@@ -101,12 +113,17 @@ export function BlogForm({ initial, blogId }: { initial?: AdminBlog; blogId?: st
         image: values.image,
         author: values.author || undefined,
         status: values.status,
-        seoTitle: values.seoTitle || undefined,
-        metaDescription: values.metaDescription || undefined,
+        slug: values.slug || undefined,
+        seoTitle: values.seoTitle,
+        metaDescription: values.metaDescription,
         keywords: values.keywords,
-        ogTitle: values.ogTitle || undefined,
-        ogDescription: values.ogDescription || undefined,
-        ogImage: values.ogImage ?? undefined,
+        ogTitle: values.ogTitle,
+        ogDescription: values.ogDescription,
+        ogImage: values.ogImage,
+        canonicalUrl: values.canonicalUrl,
+        noindex: values.noindex,
+        nofollow: values.nofollow,
+        includeInSitemap: values.includeInSitemap,
       };
       if (blogId) {
         await apiFetch(`/admin/blogs/${blogId}`, { method: "PUT", body: JSON.stringify(payload) });
@@ -131,6 +148,14 @@ export function BlogForm({ initial, blogId }: { initial?: AdminBlog; blogId?: st
           <div className="sm:col-span-2">
             <Label>Title</Label>
             <Input className="mt-1.5" value={values.title} onChange={(e) => set("title", e.target.value)} />
+          </div>
+          <div className="sm:col-span-2">
+            <SlugInput
+              prefix="/blogs/"
+              value={values.slug}
+              onChange={(v) => set("slug", v)}
+              originalSlug={initial?.status === "PUBLISHED" ? initial.slug : undefined}
+            />
           </div>
           <div>
             <Label>Category</Label>
@@ -207,12 +232,12 @@ export function BlogForm({ initial, blogId }: { initial?: AdminBlog; blogId?: st
         <h2 className="font-display text-lg font-bold text-navy-900">SEO</h2>
         <div className="mt-4 space-y-4">
           <div>
-            <Label>SEO Title</Label>
-            <Input className="mt-1.5" value={values.seoTitle} onChange={(e) => set("seoTitle", e.target.value)} />
+            <LabelWithCounter label="SEO Title" value={values.seoTitle} max={60} />
+            <Input className="mt-1.5" value={values.seoTitle} onChange={(e) => set("seoTitle", e.target.value)} placeholder="Defaults to the blog title" />
           </div>
           <div>
-            <Label>Meta Description</Label>
-            <Textarea className="mt-1.5" value={values.metaDescription} onChange={(e) => set("metaDescription", e.target.value)} />
+            <LabelWithCounter label="Meta Description" value={values.metaDescription} max={160} />
+            <Textarea className="mt-1.5" value={values.metaDescription} onChange={(e) => set("metaDescription", e.target.value)} placeholder="Defaults to the excerpt" />
           </div>
           <div>
             <Label>Keywords</Label>
@@ -251,6 +276,7 @@ export function BlogForm({ initial, blogId }: { initial?: AdminBlog; blogId?: st
             <Textarea className="mt-1.5" value={values.ogDescription} onChange={(e) => set("ogDescription", e.target.value)} />
           </div>
           <ImageUploader label="OG Image (optional)" value={values.ogImage} onChange={(img) => set("ogImage", img)} folder="blogs" />
+          <IndexingControls idPrefix="blog" value={values} onChange={(patch) => setValues((s) => ({ ...s, ...patch }))} />
         </div>
       </Card>
 

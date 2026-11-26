@@ -1,14 +1,17 @@
 import type { Metadata } from "next";
+import { staticPageMetadata } from "@/lib/seo";
 import { MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { getFaqs } from "@/lib/content";
 import { whatsappLink } from "@/lib/whatsapp";
 
-export const metadata: Metadata = {
-  title: "FAQ",
-  description: "Answers to common questions about self-drive car rentals with Ride to Road.",
-};
+export function generateMetadata(): Promise<Metadata> {
+  return staticPageMetadata("/faq", {
+    title: "FAQ",
+    description: "Answers to common questions about self-drive car rentals with Ride to Road.",
+  });
+}
 
 export default async function FaqPage() {
   const faqs = await getFaqs();

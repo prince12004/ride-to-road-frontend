@@ -25,6 +25,7 @@ import {
   ExternalLink,
   LogOut,
   ChevronDown,
+  SearchCheck,
   type LucideIcon,
 } from "lucide-react";
 import { useAdminAuthStore } from "@/store/admin-auth-store";
@@ -81,6 +82,16 @@ const NAV: NavItem[] = [
   { label: "Contact Enquiries", href: "/admin/contact-enquiries", icon: Mail, module: "contact" },
   { label: "Car Leads", href: "/admin/car-leads", icon: CarFront, module: "contact" },
   { label: "Content Pages", href: "/admin/content-pages", icon: FileText, module: "cms" },
+  {
+    label: "SEO",
+    href: "/admin/seo",
+    icon: SearchCheck,
+    module: "seo",
+    children: [
+      { label: "Page Meta", href: "/admin/seo" },
+      { label: "Redirects", href: "/admin/seo/redirects" },
+    ],
+  },
   { label: "Settings", href: "/admin/settings", icon: Settings, module: "settings" },
   { label: "Users", href: "/admin/users", icon: ShieldCheck, module: "__super_admin_only" },
   { label: "Activity Logs", href: "/admin/activity-logs", icon: History, module: "activityLogs" },

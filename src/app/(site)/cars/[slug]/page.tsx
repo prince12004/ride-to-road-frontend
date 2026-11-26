@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { buildMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight, Fuel, MapPin, Settings2, Users, Check, ShieldCheck, Truck, FileCheck2, Sparkles } from "lucide-react";
@@ -13,10 +14,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const car = await getCarBySlug(slug);
   if (!car) return {};
-  return {
+  return buildMetadata({
+    path: `/cars/${car.slug}`,
     title: `${car.name} Self Drive Rental`,
     description: car.description || `Book the ${car.name} for self-drive rental starting at ${formatINR(car.pricePerDay)}/day.`,
-  };
+    image: car.image,
+    seo: car.seo ? { ...car.seo, metaTitle: car.seo.seoTitle } : null,
+  });
 }
 
 const DOCUMENTS_REQUIRED = ["Aadhaar Card (front & back)", "PAN Card", "Valid Driving Licence (1+ year old)", "Selfie with Driving Licence"];

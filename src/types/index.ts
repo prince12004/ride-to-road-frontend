@@ -118,6 +118,7 @@ export interface CarDetail extends Car {
   cities?: string[];
   status: "AVAILABLE" | "BOOKED" | "MAINTENANCE" | "INACTIVE";
   isFeatured: boolean;
+  seo?: CarSeo;
 }
 
 export type BookingStatus =
@@ -374,6 +375,7 @@ export const ADMIN_PERMISSION_MODULES = [
   "settings",
   "users",
   "activityLogs",
+  "seo",
 ] as const;
 export type AdminPermissionModule = (typeof ADMIN_PERMISSION_MODULES)[number];
 
@@ -407,10 +409,37 @@ export interface CarDocuments {
   puc?: ImageRef;
 }
 
-export interface CarSeo {
+/** Page-level indexing controls shared by blogs, cars and static pages. */
+export interface PageIndexing {
+  canonicalUrl?: string;
+  noindex?: boolean;
+  nofollow?: boolean;
+  includeInSitemap?: boolean;
+}
+
+export interface CarSeo extends PageIndexing {
   seoTitle?: string;
   metaDescription?: string;
   ogImage?: ImageRef;
+}
+
+export interface PageSeo extends PageIndexing {
+  path: string;
+  label?: string;
+  metaTitle?: string;
+  metaDescription?: string;
+  ogImage?: ImageRef;
+  updatedAt?: string;
+}
+
+export interface SeoRedirect {
+  _id: string;
+  from: string;
+  to: string;
+  statusCode: 301 | 302;
+  isActive: boolean;
+  note?: string;
+  updatedAt?: string;
 }
 
 /**
@@ -573,7 +602,7 @@ export interface BlogCategory {
   isActive: boolean;
 }
 
-export interface AdminBlog {
+export interface AdminBlog extends PageIndexing {
   _id: string;
   title: string;
   slug: string;

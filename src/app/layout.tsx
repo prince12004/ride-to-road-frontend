@@ -3,6 +3,7 @@ import { Archivo, Manrope } from "next/font/google";
 import { AuthHydration } from "@/components/providers/auth-hydration";
 import { Toaster } from "@/components/ui/toaster";
 import { siteConfig } from "@/config/site";
+import { DEFAULT_HOME_TITLE, getSeoDefaults, imageUrl } from "@/lib/seo";
 import "./globals.css";
 
 const display = Archivo({ subsets: ["latin"], variable: "--font-display", display: "swap" });
@@ -10,24 +11,29 @@ const body = Manrope({ subsets: ["latin"], variable: "--font-body", display: "sw
 
 const GOOGLE_TAG_ID = "AW-18518564994";
 
-export const metadata: Metadata = {
-  metadataBase: new URL(siteConfig.url),
-  title: {
-    default: `${siteConfig.name} | Self-Drive Car Rental in Delhi NCR`,
-    template: `%s | ${siteConfig.name}`,
-  },
-  description: siteConfig.description,
-  icons: { icon: "/brand/logo-compact.png" },
-  openGraph: {
-    title: siteConfig.name,
-    description: siteConfig.description,
-    url: siteConfig.url,
-    siteName: siteConfig.name,
-    images: ["/images/hero-suv.jpg"],
-    locale: "en_IN",
-    type: "website",
-  },
-};
+/** Site-wide fallbacks; editable in Admin → Settings → SEO Defaults. Pages override these. */
+export async function generateMetadata(): Promise<Metadata> {
+  const defaults = await getSeoDefaults();
+  const description = defaults.defaultDescription || siteConfig.description;
+  return {
+    metadataBase: new URL(siteConfig.url),
+    title: {
+      default: defaults.defaultSeoTitle || DEFAULT_HOME_TITLE,
+      template: `%s | ${siteConfig.name}`,
+    },
+    description,
+    icons: { icon: "/brand/logo-compact.png" },
+    openGraph: {
+      title: siteConfig.name,
+      description,
+      url: siteConfig.url,
+      siteName: siteConfig.name,
+      images: [imageUrl(defaults.defaultOgImage) || "/images/hero-suv.jpg"],
+      locale: "en_IN",
+      type: "website",
+    },
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: "#0e1d26",

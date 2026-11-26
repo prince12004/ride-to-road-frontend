@@ -11,11 +11,13 @@ import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ImageUploader, GalleryUploader } from "@/components/admin/image-uploader";
+import { IndexingControls, LabelWithCounter, SlugInput } from "@/components/admin/seo-fields";
 import { apiFetch, ApiClientError } from "@/lib/api";
 import { toast } from "@/store/toast-store";
-import type { AdminCarDoc, AdminLocationDoc, CarSpecification, ImageRef } from "@/types";
+import type { AdminCarDoc, AdminLocationDoc, CarSpecification, ImageRef, PageIndexing } from "@/types";
 
-export interface CarFormValues {
+export interface CarFormValues extends PageIndexing {
+  slug: string;
   name: string;
   brand: string;
   model: string;
@@ -79,6 +81,11 @@ const emptyValues: CarFormValues = {
   seoTitle: "",
   metaDescription: "",
   ogImage: null,
+  slug: "",
+  canonicalUrl: "",
+  noindex: false,
+  nofollow: false,
+  includeInSitemap: true,
 };
 
 export function carDocToFormValues(car: AdminCarDoc): CarFormValues {
@@ -113,6 +120,11 @@ export function carDocToFormValues(car: AdminCarDoc): CarFormValues {
     seoTitle: car.seo?.seoTitle ?? "",
     metaDescription: car.seo?.metaDescription ?? "",
     ogImage: car.seo?.ogImage ?? null,
+    slug: car.slug ?? "",
+    canonicalUrl: car.seo?.canonicalUrl ?? "",
+    noindex: Boolean(car.seo?.noindex),
+    nofollow: Boolean(car.seo?.nofollow),
+    includeInSitemap: car.seo?.includeInSitemap !== false,
   };
 }
 
@@ -156,10 +168,15 @@ function buildPayload(v: CarFormValues) {
     gallery: v.gallery,
     status: v.status,
     isFeatured: v.isFeatured,
+    slug: v.slug || undefined,
     seo: {
-      seoTitle: v.seoTitle || undefined,
-      metaDescription: v.metaDescription || undefined,
-      ogImage: v.ogImage ?? undefined,
+      seoTitle: v.seoTitle,
+      metaDescription: v.metaDescription,
+      ogImage: v.ogImage,
+      canonicalUrl: v.canonicalUrl,
+      noindex: v.noindex,
+      nofollow: v.nofollow,
+      includeInSitemap: v.includeInSitemap,
     },
   };
 }
@@ -579,15 +596,22 @@ export function CarForm({ initial, carId }: { initial?: AdminCarDoc; carId?: str
       <Card className="p-6">
         <h2 className="font-display text-lg font-bold text-navy-900">SEO</h2>
         <div className="mt-4 grid gap-4">
+          <SlugInput
+            prefix="/cars/"
+            value={values.slug}
+            onChange={(v) => set("slug", v)}
+            originalSlug={initial && initial.status !== "INACTIVE" ? initial.slug : undefined}
+          />
           <div>
-            <Label>SEO Title</Label>
-            <Input className="mt-1.5" value={values.seoTitle} onChange={(e) => set("seoTitle", e.target.value)} />
+            <LabelWithCounter label="SEO Title" value={values.seoTitle} max={60} />
+            <Input className="mt-1.5" value={values.seoTitle} onChange={(e) => set("seoTitle", e.target.value)} placeholder="Defaults to “<Car name> Self Drive Rental”" />
           </div>
           <div>
-            <Label>Meta Description</Label>
-            <Textarea className="mt-1.5" value={values.metaDescription} onChange={(e) => set("metaDescription", e.target.value)} />
+            <LabelWithCounter label="Meta Description" value={values.metaDescription} max={160} />
+            <Textarea className="mt-1.5" value={values.metaDescription} onChange={(e) => set("metaDescription", e.target.value)} placeholder="Defaults to the car description" />
           </div>
           <ImageUploader label="OG Image" value={values.ogImage} onChange={(img) => set("ogImage", img)} folder="cars" />
+          <IndexingControls idPrefix="car" value={values} onChange={(patch) => setValues((s) => ({ ...s, ...patch }))} />
         </div>
       </Card>
 

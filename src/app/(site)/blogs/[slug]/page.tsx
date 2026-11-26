@@ -8,14 +8,22 @@ import { BlogCard } from "@/components/blog/blog-card";
 import { ProseContent } from "@/components/legal/prose-content";
 import { getBlogBySlug, getBlogPosts } from "@/lib/content";
 import { whatsappLink } from "@/lib/whatsapp";
+import { buildMetadata, imageUrl } from "@/lib/seo";
+import type { ImageRef, PageIndexing } from "@/types";
 
 /**
  * The `/blogs/:slug` API returns the raw blog document (unlike the list
  * endpoint), so `image` and `category` come back as populated objects
  * rather than the flat strings the listing uses.
  */
-interface BlogDetail {
+interface BlogDetail extends PageIndexing {
   _id: string;
+  seoTitle?: string;
+  metaDescription?: string;
+  keywords?: string[];
+  ogTitle?: string;
+  ogDescription?: string;
+  ogImage?: ImageRef;
   slug: string;
   title: string;
   excerpt?: string;
@@ -35,10 +43,15 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const post = await getPost(slug);
   if (!post) return {};
-  return {
+  return buildMetadata({
+    path: `/blogs/${post.slug}`,
     title: post.title,
     description: post.excerpt || post.title,
-  };
+    image: imageUrl(post.image),
+    type: "article",
+    publishedTime: post.publishedAt,
+    seo: { ...post, metaTitle: post.seoTitle },
+  });
 }
 
 export default async function BlogDetailPage({ params }: { params: Promise<{ slug: string }> }) {

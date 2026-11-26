@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { DEFAULT_HOME_TITLE, staticPageMetadata } from "@/lib/seo";
 import { AttachCarBand } from "@/components/sections/attach-car-band";
 import { Cta } from "@/components/sections/cta";
 import { Faq } from "@/components/sections/faq";
@@ -18,6 +20,10 @@ import {
   getLocations,
   getTestimonials,
 } from "@/lib/content";
+
+export function generateMetadata(): Promise<Metadata> {
+  return staticPageMetadata("/", { absoluteTitle: DEFAULT_HOME_TITLE });
+}
 
 export default async function HomePage() {
   const [cars, locations, journeys, offer, testimonials, posts, faqs] = await Promise.all([

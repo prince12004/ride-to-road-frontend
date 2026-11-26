@@ -25,6 +25,7 @@ export const TAGS = {
   faqs: "faqs",
   siteContent: "site-content",
   settings: "settings",
+  seo: "seo",
 } as const;
 
 const FALLBACK_SECONDS = 60;

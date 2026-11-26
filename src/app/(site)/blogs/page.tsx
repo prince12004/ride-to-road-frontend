@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
+import { staticPageMetadata } from "@/lib/seo";
 import { BlogCard } from "@/components/blog/blog-card";
 import { getBlogPosts } from "@/lib/content";
 
-export const metadata: Metadata = {
-  title: "Blogs",
-  description: "Road trip ideas, checklists and destinations from the Ride to Road team.",
-};
+export function generateMetadata(): Promise<Metadata> {
+  return staticPageMetadata("/blogs", {
+    title: "Blogs",
+    description: "Road trip ideas, checklists and destinations from the Ride to Road team.",
+  });
+}
 
 export default async function BlogsPage() {
   const posts = await getBlogPosts(24);

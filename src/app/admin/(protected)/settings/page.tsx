@@ -265,11 +265,11 @@ function SeoTab({
   return (
     <Card className="p-6">
       <div>
-        <Label>Default SEO Title</Label>
+        <Label>Fallback SEO Title (pages without their own title)</Label>
         <Input className="mt-1.5" value={defaultSeoTitle} onChange={(e) => setDefaultSeoTitle(e.target.value)} />
       </div>
       <div className="mt-4">
-        <Label>Default Meta Description</Label>
+        <Label>Default Meta Description (pages without their own description)</Label>
         <Textarea className="mt-1.5" value={defaultDescription} onChange={(e) => setDefaultDescription(e.target.value)} />
       </div>
       <div className="mt-4">

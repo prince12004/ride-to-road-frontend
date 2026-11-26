@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { staticPageMetadata } from "@/lib/seo";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, BadgeIndianRupee, Car, MapPin, MessageCircle, ShieldCheck, Sparkles, Users } from "lucide-react";
@@ -9,11 +10,13 @@ import { ProseContent } from "@/components/legal/prose-content";
 import { getSiteContent } from "@/lib/content";
 import { whatsappLink } from "@/lib/whatsapp";
 
-export const metadata: Metadata = {
-  title: "About Us",
-  description:
-    "Ride to Road is Delhi NCR's self-drive car rental platform — a well-kept fleet, transparent pricing and doorstep delivery across Delhi, Noida, Gurgaon, Ghaziabad and Greater Noida.",
-};
+export function generateMetadata(): Promise<Metadata> {
+  return staticPageMetadata("/about-us", {
+    title: "About Us",
+    description:
+      "Ride to Road is Delhi NCR's self-drive car rental platform — a well-kept fleet, transparent pricing and doorstep delivery across Delhi, Noida, Gurgaon, Ghaziabad and Greater Noida.",
+  });
+}
 
 const stats = [
   { label: "Cars in the fleet", value: "50+" },

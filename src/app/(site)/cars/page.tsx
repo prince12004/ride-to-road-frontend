@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
+import { staticPageMetadata } from "@/lib/seo";
 import { CarsBrowser } from "@/components/cards/cars-browser";
 import { Cta } from "@/components/sections/cta";
 import { getCars, getLocations } from "@/lib/content";
 
-export const metadata: Metadata = {
-  title: "Self-Drive Cars",
-  description: "Browse hatchbacks, sedans, SUVs and luxury cars available for self-drive rental across Delhi NCR.",
-};
+export function generateMetadata(): Promise<Metadata> {
+  return staticPageMetadata("/cars", {
+    title: "Self-Drive Cars",
+    description: "Browse hatchbacks, sedans, SUVs and luxury cars available for self-drive rental across Delhi NCR.",
+  });
+}
 
 interface CarsPageProps {
   searchParams: Promise<{
