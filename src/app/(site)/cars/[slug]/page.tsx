@@ -55,6 +55,13 @@ export default async function CarDetailPage({ params, searchParams }: CarDetailP
   const imageAlts = images.map((src, i) => (i === 0 ? car.imageAlt ?? "" : galleryAlt.get(src) ?? ""));
   const isBookable = car.status === "AVAILABLE";
 
+  // Short values ("1197 cc") fit the compact tiles; sentence-length ones
+  // would stretch the whole tile row, so they get their own list instead.
+  const SHORT_SPEC_MAX = 28;
+  const specs = car.specifications.filter((s) => s.label?.trim() && s.value?.trim()); // skip blank rows
+  const shortSpecs = specs.filter((s) => s.value.trim().length <= SHORT_SPEC_MAX).slice(0, 5);
+  const longSpecs = specs.filter((s) => s.value.trim().length > SHORT_SPEC_MAX);
+
   return (
     <>
       <JsonLd
@@ -115,10 +122,27 @@ export default async function CarDetailPage({ params, searchParams }: CarDetailP
               <SpecTile icon={Users} label="Seats" value={String(car.seats)} />
               <SpecTile icon={Settings2} label="Transmission" value={car.transmission} />
               <SpecTile icon={Fuel} label="Fuel" value={car.fuel} />
-              {car.specifications.slice(0, 4).map((s) => (
+              {shortSpecs.map((s) => (
                 <SpecTile key={s.label} icon={Check} label={s.label} value={s.value} />
               ))}
             </div>
+
+            {longSpecs.length > 0 && (
+              <div className="mt-8">
+                <h2 className="font-display text-xl font-bold text-navy-900">Highlights</h2>
+                <ul className="mt-3 grid gap-3 sm:grid-cols-2">
+                  {longSpecs.map((s) => (
+                    <li key={s.label} className="flex gap-3 rounded-2xl border border-navy-100 p-4">
+                      <Check className="mt-0.5 size-5 shrink-0 text-brand-deep" />
+                      <div>
+                        <p className="text-sm font-semibold text-navy-900">{s.label}</p>
+                        <p className="mt-1 text-sm leading-relaxed text-navy-600">{s.value}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {car.description && (
               <div className="mt-8">
